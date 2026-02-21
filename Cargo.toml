@@ -1,0 +1,3 @@
+[workspace]
+resolver = "3"
+members = ["protoview-cli", "protoview-gui", "protoview-lib"]
