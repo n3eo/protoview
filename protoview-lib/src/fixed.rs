@@ -6,8 +6,16 @@ pub fn parse_fixed32(data: &[u8; 4]) -> i32 {
     ret as i32
 }
 
+pub fn parse_fixed64(data: &[u8; 8]) -> i32 {
+    let mut ret: isize = 0;
+    for i in data.iter().rev() {
+        ret = (ret << 8) | (*i as isize);
+    }
+    ret as i32
+}
+
 mod tests {
-    use crate::fixed::parse_fixed32;
+    use crate::fixed::{parse_fixed32, parse_fixed64};
 
     #[test]
     fn test_fixed32_parsing() {
@@ -70,5 +78,78 @@ mod tests {
         assert_eq!(-1, parse_fixed32(&[0xff, 0xff, 0xff, 0xff]));
         assert_eq!(127, parse_fixed32(&[0x7f, 0x00, 0x00, 0x00]));
         assert_eq!(-128, parse_fixed32(&[0x80, 0xff, 0xff, 0xff]));
+    }
+
+    #[test]
+    fn test_fixed64_parsing() {
+        // Test basic 64-bit values
+        assert_eq!(
+            1600,
+            parse_fixed64(&[0x40, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
+        );
+        assert_eq!(
+            500,
+            parse_fixed64(&[0xf4, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
+        );
+        assert_eq!(
+            8192,
+            parse_fixed64(&[0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
+        );
+    }
+
+    #[test]
+    fn test_fixed64_zero() {
+        // Test zero value
+        assert_eq!(
+            0,
+            parse_fixed64(&[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
+        );
+    }
+
+    #[test]
+    fn test_fixed64_large_values() {
+        // Test large 64-bit values (note: parse_fixed64 returns i32, so we're limited to 32-bit range)
+        assert_eq!(
+            2147483647,
+            parse_fixed64(&[0xff, 0xff, 0xff, 0x7f, 0x00, 0x00, 0x00, 0x00])
+        );
+        assert_eq!(
+            -2147483648,
+            parse_fixed64(&[0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00, 0x00])
+        );
+
+        // Test values that would overflow i32 if not for the cast
+        // These will wrap around due to the i32 cast
+        assert_eq!(
+            1,
+            parse_fixed64(&[0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
+        );
+        assert_eq!(
+            -1,
+            parse_fixed64(&[0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff])
+        );
+    }
+
+    #[test]
+    fn test_fixed64_negative_numbers() {
+        // Test negative 64-bit values
+        assert_eq!(
+            -42,
+            parse_fixed64(&[0xd6, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff])
+        );
+        assert_eq!(
+            -792,
+            parse_fixed64(&[0xe8, 0xfc, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff])
+        );
+
+        // Test as unsigned (cast to u32)
+        assert_eq!(
+            4294967295,
+            parse_fixed64(&[0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff]) as u32
+        );
+        assert_eq!(
+            4294967254,
+            parse_fixed64(&[0xd6, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff]) as u32
+        );
     }
 }

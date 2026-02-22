@@ -20,7 +20,11 @@
 //     vec![]
 // }
 
-use crate::{field_type::FieldType, fixed::parse_fixed32, tag::Tag};
+use crate::{
+    field_type::FieldType,
+    fixed::{parse_fixed32, parse_fixed64},
+    tag::Tag,
+};
 
 fn parse(data: &[u8]) -> Vec<Tag> {
     let mut skip_until: usize = 0;
@@ -37,22 +41,31 @@ fn parse(data: &[u8]) -> Vec<Tag> {
 
         let Tag { field, index } = Tag::from(&byte);
 
-        match field {
+        let tag = match field {
             FieldType::Varint(_) => todo!(),
-            FieldType::I64(_) => todo!(),
+            FieldType::I64(_) => {
+                // Convert slice to array and parse as fixed32, then convert to isize
+                let bytes: [u8; 8] = data[idx + 1..idx + 9].try_into().unwrap();
+                skip_until = idx + 9;
+                Tag {
+                    field: FieldType::I64(parse_fixed64(&bytes) as isize),
+                    index: index,
+                }
+            }
             FieldType::Len(_) => todo!(),
-            FieldType::SGroup(_) => todo!(),
-            FieldType::EGroup(_) => todo!(),
+            FieldType::SGroup(_) => todo!("Implement deprecated start and end groups"),
+            FieldType::EGroup(_) => todo!("Implement deprecated start and end groups"),
             FieldType::I32(_) => {
                 // Convert slice to array and parse as fixed32, then convert to isize
                 let bytes: [u8; 4] = data[idx + 1..idx + 5].try_into().unwrap();
-                ret.push(Tag {
+                skip_until = idx + 5;
+                Tag {
                     field: FieldType::I32(parse_fixed32(&bytes) as isize),
                     index: index,
-                });
-                skip_until = idx + 5;
+                }
             }
-        }
+        };
+        ret.push(tag);
     }
 
     ret
@@ -77,6 +90,21 @@ mod tests {
         assert_eq!(parsed, expected);
     }
 
+    #[test]
+    fn test_fixed64() {
+        let parsed = parse(&[0x09, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x29, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
+        let expected = vec![
+            Tag {
+                field: FieldType::I64(1),
+                index: 1,
+            },
+            Tag {
+                field: FieldType::I64(5),
+                index: 5,
+            },
+        ];
+        assert_eq!(parsed, expected);
+    }
     // #[test]
     // fn test_parse_int() {
     //     assert_eq!(
