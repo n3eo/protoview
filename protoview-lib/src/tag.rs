@@ -1,12 +1,12 @@
 use crate::field_type::FieldType;
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct Tag {
-    pub field: FieldType,
+pub struct Tag<'a> {
+    pub field: FieldType<'a>,
     pub index: usize,
 }
 
-impl From<&u8> for Tag {
+impl<'a> From<&u8> for Tag<'a> {
     fn from(value: &u8) -> Self {
         Tag {
             field: FieldType::from(value),
@@ -35,7 +35,7 @@ mod tests {
         assert_eq!(
             Tag::from(&0x12),
             Tag {
-                field: FieldType::Len(0),
+                field: FieldType::Len(&[]),
                 index: 2
             }
         );

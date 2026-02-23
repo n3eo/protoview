@@ -1,27 +1,27 @@
 #[derive(Debug, PartialEq, Eq)]
-pub enum FieldType {
+pub enum FieldType<'a> {
     /// int32, int64, uint32, uint64, sint32, sint64, bool, enum
     Varint(isize),
     /// fixed64, sfixed64, double
     I64(isize),
     /// string, bytes, embedded messages, packed repeated fields
-    Len(isize),
+    Len(&'a [u8]),
     /// group start (deprecated)
-    SGroup(isize),
+    SGroup,
     /// group end (deprecated)
-    EGroup(isize),
+    EGroup,
     /// fixed32, sfixed32, float
     I32(isize),
 }
 
-impl From<&u8> for FieldType {
+impl<'a> From<&u8> for FieldType<'a> {
     fn from(value: &u8) -> Self {
         match value & 0b00000111 {
             0b000000 => FieldType::Varint(0),
             0b000001 => FieldType::I64(0),
-            0b000010 => FieldType::Len(0),
-            0b000011 => FieldType::SGroup(0),
-            0b000100 => FieldType::EGroup(0),
+            0b000010 => FieldType::Len(&[]),
+            0b000011 => FieldType::SGroup,
+            0b000100 => FieldType::EGroup,
             0b000101 => FieldType::I32(0),
             _ => panic!("Incorrect wire type"), // TODO: Refactor to TryFrom and don't panic!
         }
@@ -37,9 +37,9 @@ mod tests {
         // Test all valid wire types (0-5)
         assert_eq!(FieldType::from(&0b000000), FieldType::Varint(0));
         assert_eq!(FieldType::from(&0b000001), FieldType::I64(0));
-        assert_eq!(FieldType::from(&0b000010), FieldType::Len(0));
-        assert_eq!(FieldType::from(&0b000011), FieldType::SGroup(0));
-        assert_eq!(FieldType::from(&0b000100), FieldType::EGroup(0));
+        assert_eq!(FieldType::from(&0b000010), FieldType::Len(&[]));
+        assert_eq!(FieldType::from(&0b000011), FieldType::SGroup);
+        assert_eq!(FieldType::from(&0b000100), FieldType::EGroup);
         assert_eq!(FieldType::from(&0b000101), FieldType::I32(0));
     }
 
@@ -70,16 +70,16 @@ mod tests {
         // Test that FieldType variants can be compared for equality
         assert_eq!(FieldType::Varint(0), FieldType::Varint(0));
         assert_eq!(FieldType::I64(0), FieldType::I64(0));
-        assert_eq!(FieldType::Len(0), FieldType::Len(0));
-        assert_eq!(FieldType::SGroup(0), FieldType::SGroup(0));
-        assert_eq!(FieldType::EGroup(0), FieldType::EGroup(0));
+        assert_eq!(FieldType::Len(&[]), FieldType::Len(&[]));
+        assert_eq!(FieldType::SGroup, FieldType::SGroup);
+        assert_eq!(FieldType::EGroup, FieldType::EGroup);
         assert_eq!(FieldType::I32(0), FieldType::I32(0));
 
         // Test inequality
         assert_ne!(FieldType::Varint(0), FieldType::I64(0));
-        assert_ne!(FieldType::Varint(0), FieldType::Len(0));
-        assert_ne!(FieldType::Varint(0), FieldType::SGroup(0));
-        assert_ne!(FieldType::Varint(0), FieldType::EGroup(0));
+        assert_ne!(FieldType::Varint(0), FieldType::Len(&[]));
+        assert_ne!(FieldType::Varint(0), FieldType::SGroup);
+        assert_ne!(FieldType::Varint(0), FieldType::EGroup);
         assert_ne!(FieldType::Varint(0), FieldType::I32(0));
     }
 

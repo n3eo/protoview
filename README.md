@@ -15,3 +15,4 @@ The project is structured into three workspace members:
 - [ ] Implement GUI
 - [ ] Implement Mapping to schema
 - [ ] Extend test cases
+- [ ] Negative numbers (ZigZag)

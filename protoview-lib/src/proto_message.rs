@@ -23,6 +23,7 @@
 use crate::{
     field_type::FieldType,
     fixed::{parse_fixed32, parse_fixed64},
+    repeated::find_repeated_length,
     tag::Tag,
     varint::{find_varint_length, parse_varint},
 };
@@ -60,9 +61,19 @@ fn parse(data: &[u8]) -> Vec<Tag> {
                     index: index,
                 }
             }
-            FieldType::Len(_) => todo!(),
-            FieldType::SGroup(_) => todo!("Implement deprecated start and end groups"),
-            FieldType::EGroup(_) => todo!("Implement deprecated start and end groups"),
+            FieldType::Len(_) => {
+                let repeated_length = find_repeated_length(&data[idx + 1..]);
+                skip_until = idx + 1 + repeated_length.skip_bytes + repeated_length.length;
+                Tag {
+                    field: FieldType::Len(
+                        &data[idx + 1 + repeated_length.skip_bytes
+                            ..idx + 1 + repeated_length.skip_bytes + repeated_length.length],
+                    ),
+                    index,
+                }
+            }
+            FieldType::SGroup => todo!("Implement deprecated start and end groups"),
+            FieldType::EGroup => todo!("Implement deprecated start and end groups"),
             FieldType::I32(_) => {
                 // Convert slice to array and parse as fixed32, then convert to isize
                 let bytes: [u8; 4] = data[idx + 1..idx + 5].try_into().unwrap();
@@ -128,6 +139,30 @@ mod tests {
             Tag {
                 field: FieldType::Varint(1025),
                 index: 2,
+            },
+        ];
+        assert_eq!(parsed, expected);
+    }
+
+    #[test]
+    fn test_repeated_string() {
+        let parsed = parse(&[0x0a, 0x05, 0x68, 0x65, 0x6c, 0x6c, 0x6f]);
+        let expected = vec![
+            Tag {
+                field: FieldType::Len(&[0x68, 0x65, 0x6c, 0x6c, 0x6f]),
+                index: 1,
+            },
+        ];
+        assert_eq!(parsed, expected);
+    }
+
+    #[test]
+    fn test_repeated_bytes() {
+        let parsed = parse(&[0x0a, 0x05, 0x68, 0x65, 0x6c, 0x6c, 0x6f]);
+        let expected = vec![
+            Tag {
+                field: FieldType::Len(&[104, 101, 108, 108, 111]),
+                index: 1,
             },
         ];
         assert_eq!(parsed, expected);
