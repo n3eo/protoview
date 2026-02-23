@@ -1,34 +1,20 @@
-// struct ProtoMessage {
-//     fields: Vec<Box<NodeStruct<dyn Node>>>,
-//     data: Vec<u8>,
-//     lenght: usize,
-// }
-
-// impl ProtoMessage {
-//     fn parse(data: Vec<u8>) -> ProtoMessage {
-//         let fields = parse(&data);
-//         ProtoMessage {
-//             fields: fields,
-//             data: data,
-//             lenght: fields.len(),
-//         }
-//     }
-// }
-
-// fn parse<T>(data: &[u8]) -> Vec<Box<NodeStruct<T>>> {
-//     for i in data {}
-//     vec![]
-// }
+use thiserror::Error;
 
 use crate::{
     field::{Field, FieldType, FieldValue},
     fixed::{parse_fixed32, parse_fixed64},
     repeated::find_repeated_length,
-    tag::FieldDescriptor,
+    tag::{FieldDescriptor, FieldDescriptorError},
     varint::{find_varint_length, parse_varint},
 };
 
-fn parse(data: &[u8]) -> Vec<Field> {
+#[derive(Error, Debug, PartialEq, Eq)]
+pub enum ParseProtoError {
+    #[error("Invalid tag length during: {0}")]
+    InvalidTagLength(#[from] FieldDescriptorError),
+}
+
+fn parse_proto(data: &[u8]) -> Result<Vec<Field>, ParseProtoError> {
     let mut skip_until: usize = 0;
     let mut ret = vec![];
 
@@ -41,7 +27,7 @@ fn parse(data: &[u8]) -> Vec<Field> {
         // PANIC: for loop guarantees index exists when used without modification
         let byte = data[idx];
 
-        let FieldDescriptor { field_type, index } = FieldDescriptor::from(&byte);
+        let FieldDescriptor { field_type, index } = FieldDescriptor::try_from(&byte)?;
 
         let tag = match field_type {
             FieldType::Varint => {
@@ -91,7 +77,7 @@ fn parse(data: &[u8]) -> Vec<Field> {
         ret.push(tag);
     }
 
-    ret
+    Ok(ret)
 }
 
 mod tests {
@@ -99,7 +85,7 @@ mod tests {
 
     #[test]
     fn test_fixed32() {
-        let parsed = parse(&[0x0d, 0x01, 0x00, 0x00, 0x00, 0x2d, 0x05, 0x00, 0x00, 0x00]);
+        let parsed = parse_proto(&[0x0d, 0x01, 0x00, 0x00, 0x00, 0x2d, 0x05, 0x00, 0x00, 0x00]).unwrap();
         let expected = vec![
             Field {
                 tag: FieldType::I32,
@@ -117,10 +103,10 @@ mod tests {
 
     #[test]
     fn test_fixed64() {
-        let parsed = parse(&[
+        let parsed = parse_proto(&[
             0x09, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x29, 0x05, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00,
-        ]);
+        ]).unwrap();
         let expected = vec![
             Field {
                 tag: FieldType::I64,
@@ -138,7 +124,7 @@ mod tests {
 
     #[test]
     fn test_varint() {
-        let parsed = parse(&[0x08, 0x08, 0x10, 0x81, 0x08]);
+        let parsed = parse_proto(&[0x08, 0x08, 0x10, 0x81, 0x08]).unwrap();
         let expected = vec![
             Field {
                 tag: FieldType::Varint,
@@ -156,7 +142,7 @@ mod tests {
 
     #[test]
     fn test_repeated_string() {
-        let parsed = parse(&[0x0a, 0x05, 0x68, 0x65, 0x6c, 0x6c, 0x6f]);
+        let parsed = parse_proto(&[0x0a, 0x05, 0x68, 0x65, 0x6c, 0x6c, 0x6f]).unwrap();
         let expected = vec![Field {
             tag: FieldType::Len,
             index: 1,
@@ -167,7 +153,7 @@ mod tests {
 
     #[test]
     fn test_repeated_bytes() {
-        let parsed = parse(&[0x0a, 0x05, 0x68, 0x65, 0x6c, 0x6c, 0x6f]);
+        let parsed = parse_proto(&[0x0a, 0x05, 0x68, 0x65, 0x6c, 0x6c, 0x6f]).unwrap();
         let expected = vec![Field {
             tag: FieldType::Len,
             index: 1,

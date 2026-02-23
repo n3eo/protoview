@@ -1,4 +1,5 @@
 use crate::tag::FieldDescriptor;
+use thiserror::Error;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Field<'a> {
@@ -24,16 +25,24 @@ pub enum FieldType {
     I32,
 }
 
-impl From<&u8> for FieldType {
-    fn from(value: &u8) -> Self {
+#[derive(Error, Debug, PartialEq, Eq)]
+pub enum FieldTypeError {
+    #[error("Invalid wire type: {0}")]
+    InvalidWireType(u8),
+}
+
+impl TryFrom<&u8> for FieldType {
+    type Error = FieldTypeError;
+
+    fn try_from(value: &u8) -> Result<Self, Self::Error> {
         match value & 0b00000111 {
-            0b000000 => FieldType::Varint,
-            0b000001 => FieldType::I64,
-            0b000010 => FieldType::Len,
-            0b000011 => FieldType::SGroup,
-            0b000100 => FieldType::EGroup,
-            0b000101 => FieldType::I32,
-            _ => panic!("Incorrect wire type"), // TODO: Refactor to TryFrom and don't panic!
+            0b000000 => Ok(FieldType::Varint),
+            0b000001 => Ok(FieldType::I64),
+            0b000010 => Ok(FieldType::Len),
+            0b000011 => Ok(FieldType::SGroup),
+            0b000100 => Ok(FieldType::EGroup),
+            0b000101 => Ok(FieldType::I32),
+            invalid_type => Err(FieldTypeError::InvalidWireType(invalid_type)),
         }
     }
 }
@@ -63,34 +72,34 @@ mod tests {
     #[test]
     fn test_valid_wire_types() {
         // Test all valid wire types (0-5)
-        assert_eq!(FieldType::from(&0b000000), FieldType::Varint);
-        assert_eq!(FieldType::from(&0b000001), FieldType::I64);
-        assert_eq!(FieldType::from(&0b000010), FieldType::Len);
-        assert_eq!(FieldType::from(&0b000011), FieldType::SGroup);
-        assert_eq!(FieldType::from(&0b000100), FieldType::EGroup);
-        assert_eq!(FieldType::from(&0b000101), FieldType::I32);
+        assert_eq!(FieldType::try_from(&0b000000).unwrap(), FieldType::Varint);
+        assert_eq!(FieldType::try_from(&0b000001).unwrap(), FieldType::I64);
+        assert_eq!(FieldType::try_from(&0b000010).unwrap(), FieldType::Len);
+        assert_eq!(FieldType::try_from(&0b000011).unwrap(), FieldType::SGroup);
+        assert_eq!(FieldType::try_from(&0b000100).unwrap(), FieldType::EGroup);
+        assert_eq!(FieldType::try_from(&0b000101).unwrap(), FieldType::I32);
     }
 
     #[test]
     fn test_bit_masking() {
         // Test that higher bits are properly masked out
         // These values all have the same lower 4 bits (0b0000) but different higher bits
-        assert_eq!(FieldType::from(&0b00000000), FieldType::Varint);
-        assert_eq!(FieldType::from(&0b00010000), FieldType::Varint);
-        assert_eq!(FieldType::from(&0b00100000), FieldType::Varint);
-        assert_eq!(FieldType::from(&0b00110000), FieldType::Varint);
-        assert_eq!(FieldType::from(&0b01000000), FieldType::Varint);
-        assert_eq!(FieldType::from(&0b01010000), FieldType::Varint);
-        assert_eq!(FieldType::from(&0b01100000), FieldType::Varint);
-        assert_eq!(FieldType::from(&0b01110000), FieldType::Varint);
-        assert_eq!(FieldType::from(&0b10000000), FieldType::Varint);
-        assert_eq!(FieldType::from(&0b10010000), FieldType::Varint);
-        assert_eq!(FieldType::from(&0b10100000), FieldType::Varint);
-        assert_eq!(FieldType::from(&0b10110000), FieldType::Varint);
-        assert_eq!(FieldType::from(&0b11000000), FieldType::Varint);
-        assert_eq!(FieldType::from(&0b11010000), FieldType::Varint);
-        assert_eq!(FieldType::from(&0b11100000), FieldType::Varint);
-        assert_eq!(FieldType::from(&0b11110000), FieldType::Varint);
+        assert_eq!(FieldType::try_from(&0b00000000).unwrap(), FieldType::Varint);
+        assert_eq!(FieldType::try_from(&0b00010000).unwrap(), FieldType::Varint);
+        assert_eq!(FieldType::try_from(&0b00100000).unwrap(), FieldType::Varint);
+        assert_eq!(FieldType::try_from(&0b00110000).unwrap(), FieldType::Varint);
+        assert_eq!(FieldType::try_from(&0b01000000).unwrap(), FieldType::Varint);
+        assert_eq!(FieldType::try_from(&0b01010000).unwrap(), FieldType::Varint);
+        assert_eq!(FieldType::try_from(&0b01100000).unwrap(), FieldType::Varint);
+        assert_eq!(FieldType::try_from(&0b01110000).unwrap(), FieldType::Varint);
+        assert_eq!(FieldType::try_from(&0b10000000).unwrap(), FieldType::Varint);
+        assert_eq!(FieldType::try_from(&0b10010000).unwrap(), FieldType::Varint);
+        assert_eq!(FieldType::try_from(&0b10100000).unwrap(), FieldType::Varint);
+        assert_eq!(FieldType::try_from(&0b10110000).unwrap(), FieldType::Varint);
+        assert_eq!(FieldType::try_from(&0b11000000).unwrap(), FieldType::Varint);
+        assert_eq!(FieldType::try_from(&0b11010000).unwrap(), FieldType::Varint);
+        assert_eq!(FieldType::try_from(&0b11100000).unwrap(), FieldType::Varint);
+        assert_eq!(FieldType::try_from(&0b11110000).unwrap(), FieldType::Varint);
     }
 
     #[test]
@@ -112,30 +121,30 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "Incorrect wire type")]
     fn test_invalid_wire_type_6() {
-        // Test that wire type 6 panics
-        let _ = FieldType::from(&0b0000110);
+        // Test that wire type 6 returns an error
+        let result = FieldType::try_from(&0b0000110);
+        assert!(matches!(result, Err(FieldTypeError::InvalidWireType(6))));
     }
 
     #[test]
-    #[should_panic(expected = "Incorrect wire type")]
     fn test_invalid_wire_type_7() {
-        // Test that wire type 7 panics
-        let _ = FieldType::from(&0b0000111);
+        // Test that wire type 7 returns an error
+        let result = FieldType::try_from(&0b0000111);
+        assert!(matches!(result, Err(FieldTypeError::InvalidWireType(7))));
     }
 
     #[test]
-    #[should_panic(expected = "Incorrect wire type")]
     fn test_invalid_wire_type_15() {
-        // Test that wire type 15 panics
-        let _ = FieldType::from(&0b0001111);
+        // Test that wire type 15 returns an error (after masking, it becomes 7)
+        let result = FieldType::try_from(&0b0001111);
+        assert!(matches!(result, Err(FieldTypeError::InvalidWireType(7))));
     }
 
     #[test]
-    #[should_panic(expected = "Incorrect wire type")]
     fn test_invalid_wire_type_with_higher_bits() {
-        // Test that invalid wire types panic even with higher bits set
-        let _ = FieldType::from(&0b10001111);
+        // Test that invalid wire types return an error even with higher bits set
+        let result = FieldType::try_from(&0b10001111);
+        assert!(matches!(result, Err(FieldTypeError::InvalidWireType(7))));
     }
 }
