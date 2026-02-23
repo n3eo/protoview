@@ -21,14 +21,14 @@
 // }
 
 use crate::{
-    field_type::FieldType,
+    field::{Field, FieldType, FieldValue},
     fixed::{parse_fixed32, parse_fixed64},
     repeated::find_repeated_length,
-    tag::Tag,
+    tag::FieldDescriptor,
     varint::{find_varint_length, parse_varint},
 };
 
-fn parse(data: &[u8]) -> Vec<Tag> {
+fn parse(data: &[u8]) -> Vec<Field> {
     let mut skip_until: usize = 0;
     let mut ret = vec![];
 
@@ -41,46 +41,50 @@ fn parse(data: &[u8]) -> Vec<Tag> {
         // PANIC: for loop guarantees index exists when used without modification
         let byte = data[idx];
 
-        let Tag { field, index } = Tag::from(&byte);
+        let FieldDescriptor { field_type, index } = FieldDescriptor::from(&byte);
 
-        let tag = match field {
-            FieldType::Varint(_) => {
+        let tag = match field_type {
+            FieldType::Varint => {
                 let var_int_len = find_varint_length(&data[idx + 1..]);
                 skip_until = idx + 1 + var_int_len;
-                Tag {
-                    field: FieldType::Varint(parse_varint(&data[idx + 1..idx + 1 + var_int_len])),
-                    index: index,
+                Field {
+                    tag: FieldType::Varint,
+                    index,
+                    value: FieldValue::Varint(parse_varint(&data[idx + 1..idx + 1 + var_int_len])),
                 }
             }
-            FieldType::I64(_) => {
+            FieldType::I64 => {
                 // Convert slice to array and parse as fixed32, then convert to isize
                 let bytes: [u8; 8] = data[idx + 1..idx + 9].try_into().unwrap();
                 skip_until = idx + 9;
-                Tag {
-                    field: FieldType::I64(parse_fixed64(&bytes) as isize),
-                    index: index,
+                Field {
+                    tag: FieldType::I64,
+                    index,
+                    value: FieldValue::I64(parse_fixed64(&bytes) as isize),
                 }
             }
-            FieldType::Len(_) => {
+            FieldType::Len => {
                 let repeated_length = find_repeated_length(&data[idx + 1..]);
                 skip_until = idx + 1 + repeated_length.skip_bytes + repeated_length.length;
-                Tag {
-                    field: FieldType::Len(
+                Field {
+                    tag: FieldType::Len,
+                    index,
+                    value: FieldValue::LenPrimitive(
                         &data[idx + 1 + repeated_length.skip_bytes
                             ..idx + 1 + repeated_length.skip_bytes + repeated_length.length],
                     ),
-                    index,
                 }
             }
             FieldType::SGroup => todo!("Implement deprecated start and end groups"),
             FieldType::EGroup => todo!("Implement deprecated start and end groups"),
-            FieldType::I32(_) => {
+            FieldType::I32 => {
                 // Convert slice to array and parse as fixed32, then convert to isize
                 let bytes: [u8; 4] = data[idx + 1..idx + 5].try_into().unwrap();
                 skip_until = idx + 5;
-                Tag {
-                    field: FieldType::I32(parse_fixed32(&bytes) as isize),
-                    index: index,
+                Field {
+                    tag: FieldType::I32,
+                    index,
+                    value: FieldValue::I32(parse_fixed32(&bytes) as isize),
                 }
             }
         };
@@ -97,13 +101,15 @@ mod tests {
     fn test_fixed32() {
         let parsed = parse(&[0x0d, 0x01, 0x00, 0x00, 0x00, 0x2d, 0x05, 0x00, 0x00, 0x00]);
         let expected = vec![
-            Tag {
-                field: FieldType::I32(1),
+            Field {
+                tag: FieldType::I32,
                 index: 1,
+                value: FieldValue::I32(1),
             },
-            Tag {
-                field: FieldType::I32(5),
+            Field {
+                tag: FieldType::I32,
                 index: 5,
+                value: FieldValue::I32(5),
             },
         ];
         assert_eq!(parsed, expected);
@@ -116,13 +122,15 @@ mod tests {
             0x00, 0x00, 0x00, 0x00,
         ]);
         let expected = vec![
-            Tag {
-                field: FieldType::I64(1),
+            Field {
+                tag: FieldType::I64,
                 index: 1,
+                value: FieldValue::I64(1),
             },
-            Tag {
-                field: FieldType::I64(5),
+            Field {
+                tag: FieldType::I64,
                 index: 5,
+                value: FieldValue::I64(5),
             },
         ];
         assert_eq!(parsed, expected);
@@ -132,13 +140,15 @@ mod tests {
     fn test_varint() {
         let parsed = parse(&[0x08, 0x08, 0x10, 0x81, 0x08]);
         let expected = vec![
-            Tag {
-                field: FieldType::Varint(8),
+            Field {
+                tag: FieldType::Varint,
                 index: 1,
+                value: FieldValue::Varint(8),
             },
-            Tag {
-                field: FieldType::Varint(1025),
+            Field {
+                tag: FieldType::Varint,
                 index: 2,
+                value: FieldValue::Varint(1025),
             },
         ];
         assert_eq!(parsed, expected);
@@ -147,24 +157,22 @@ mod tests {
     #[test]
     fn test_repeated_string() {
         let parsed = parse(&[0x0a, 0x05, 0x68, 0x65, 0x6c, 0x6c, 0x6f]);
-        let expected = vec![
-            Tag {
-                field: FieldType::Len(&[0x68, 0x65, 0x6c, 0x6c, 0x6f]),
-                index: 1,
-            },
-        ];
+        let expected = vec![Field {
+            tag: FieldType::Len,
+            index: 1,
+            value: FieldValue::LenPrimitive(&[0x68, 0x65, 0x6c, 0x6c, 0x6f]),
+        }];
         assert_eq!(parsed, expected);
     }
 
     #[test]
     fn test_repeated_bytes() {
         let parsed = parse(&[0x0a, 0x05, 0x68, 0x65, 0x6c, 0x6c, 0x6f]);
-        let expected = vec![
-            Tag {
-                field: FieldType::Len(&[104, 101, 108, 108, 111]),
-                index: 1,
-            },
-        ];
+        let expected = vec![Field {
+            tag: FieldType::Len,
+            index: 1,
+            value: FieldValue::LenPrimitive(&[104, 101, 108, 108, 111]),
+        }];
         assert_eq!(parsed, expected);
     }
 }

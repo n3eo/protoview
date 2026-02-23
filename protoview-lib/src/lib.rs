@@ -1,4 +1,4 @@
-mod field_type;
+mod field;
 mod fixed;
 mod proto_message;
 mod tag;
