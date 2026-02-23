@@ -7,12 +7,26 @@ The project is structured into three workspace members:
 - `protoview-gui`: Warps the lib in an easy to use GUI
 
 # TODO:
-- [ ] Varint field numbers in tag
-- [ ] Implement LEN variant
-- [ ] Float and double decoding in I32 & I64
-- [ ] Test bool and enum in Varint
-- [ ] Implement CLI
-- [ ] Implement GUI
-- [ ] Implement Mapping to schema
-- [ ] Extend test cases
-- [ ] Negative numbers (ZigZag)
+- protoview-lib
+  - [ ] Varint field numbers in tag
+  - [ ] Implement LEN variant
+    - [X] Primitives 
+    - [ ] Sub messages
+  - [ ] Float and double decoding in I32 & I64
+  - [ ] Test bool and enum in Varint
+  - [ ] Implement Mapping to schema
+  - [ ] Extend test cases
+  - [ ] Negative numbers (ZigZag)
+  - [ ] Check proto docs if varint impl should use u128
+  - [ ] Debug mode with duplicate fields for index?
+    - [ ] Store parsed data in a tree structure
+  - [ ] Schema parsing
+- protoview-cli
+  - [ ] implement cli
+  - [ ] Add colors to output
+  - [ ] support bytes, hex
+    - [ ] auto mode
+  - [ ] stdin & file reading
+- protoview-gui
+  - [ ] Implement GUI
+- TUI?
