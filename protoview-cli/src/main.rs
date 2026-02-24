@@ -19,7 +19,7 @@ pub enum Error {
 fn main() -> Result<(), Error> {
     let args = Args::parse();
 
-    let input: Vec<u8> = harmonize_input_to_u8(&args.proto_bytes.into_inner(), &args.format)?;
+    let input: Vec<u8> = harmonize_input_to_u8(&args.raw.into_inner(), &args.format)?;
     let parsed = parse_proto(&input);
 
     println!("{:#?}", parsed);

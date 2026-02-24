@@ -13,7 +13,7 @@ pub(crate) fn harmonize_input_to_u8(data: &String, format: &Format) -> Result<Ve
     match format {
         Format::Hex => hex::decode(data).map_err(|_| Convert2U8Error::DecodeHexError),
         Format::Binary => todo!(),
-        Format::Decimal => todo!(),
+        Format::DecimalArray => todo!(),
         Format::Base64 => todo!(),
     }
 }
