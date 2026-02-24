@@ -56,7 +56,7 @@ pub enum FieldValue<'a> {
     /// string, bytes, embedded messages, packed repeated fields
     LenPrimitive(&'a [u8]),
     /// string, bytes, embedded messages, packed repeated fields
-    LenSubmessage(&'a [Field<'a>]),
+    LenSubmessage(Vec<Field<'a>>),
     /// group start (deprecated)
     SGroup,
     /// group end (deprecated)

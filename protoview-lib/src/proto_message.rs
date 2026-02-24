@@ -12,9 +12,11 @@ use crate::{
 pub enum ParseProtoError {
     #[error("Invalid tag length during: {0}")]
     InvalidTagLength(#[from] FieldDescriptorError),
+    #[error("Unimplemented protobuf tag")]
+    UnimplementedTag,
 }
 
-fn parse_proto(data: &[u8]) -> Result<Vec<Field>, ParseProtoError> {
+fn parse_proto(data: &[u8]) -> Result<Vec<Field<'_>>, ParseProtoError> {
     let mut skip_until: usize = 0;
     let mut ret = vec![];
 
@@ -52,17 +54,35 @@ fn parse_proto(data: &[u8]) -> Result<Vec<Field>, ParseProtoError> {
             FieldType::Len => {
                 let repeated_length = find_repeated_length(&data[idx + 1..]);
                 skip_until = idx + 1 + repeated_length.skip_bytes + repeated_length.length;
+
+                let len_data = &data[idx + 1 + repeated_length.skip_bytes
+                    ..idx + 1 + repeated_length.skip_bytes + repeated_length.length];
+
+                // Check if the first byte of the len data is a valid Protobuf Field Tag as a proxy
+                // if the bytes should be parsed as a submessage.
+                let test_is_sub_message = FieldDescriptor::try_from(
+                    len_data.first().expect("data has a positive length"),
+                );
+
+                // As we can't determine the kind of a submessage by looking at the schema
+                // we use the field descriptor parsing and message parsing as proxies.
+                let field_value = if test_is_sub_message.is_ok() {
+                    // If the submessage parsing fails it is a primitiv.
+                    if let Ok(sub_message) = parse_proto(len_data) {
+                        FieldValue::LenSubmessage(sub_message)
+                    } else {
+                        FieldValue::LenPrimitive(len_data)
+                    }
+                } else {
+                    FieldValue::LenPrimitive(len_data)
+                };
                 Field {
                     tag: FieldType::Len,
                     index,
-                    value: FieldValue::LenPrimitive(
-                        &data[idx + 1 + repeated_length.skip_bytes
-                            ..idx + 1 + repeated_length.skip_bytes + repeated_length.length],
-                    ),
+                    value: field_value,
                 }
             }
-            FieldType::SGroup => todo!("Implement deprecated start and end groups"),
-            FieldType::EGroup => todo!("Implement deprecated start and end groups"),
+            FieldType::SGroup | FieldType::EGroup => return Err(ParseProtoError::UnimplementedTag),
             FieldType::I32 => {
                 // Convert slice to array and parse as fixed32, then convert to isize
                 let bytes: [u8; 4] = data[idx + 1..idx + 5].try_into().unwrap();
@@ -85,7 +105,8 @@ mod tests {
 
     #[test]
     fn test_fixed32() {
-        let parsed = parse_proto(&[0x0d, 0x01, 0x00, 0x00, 0x00, 0x2d, 0x05, 0x00, 0x00, 0x00]).unwrap();
+        let parsed =
+            parse_proto(&[0x0d, 0x01, 0x00, 0x00, 0x00, 0x2d, 0x05, 0x00, 0x00, 0x00]).unwrap();
         let expected = vec![
             Field {
                 tag: FieldType::I32,
@@ -106,7 +127,8 @@ mod tests {
         let parsed = parse_proto(&[
             0x09, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x29, 0x05, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00,
-        ]).unwrap();
+        ])
+        .unwrap();
         let expected = vec![
             Field {
                 tag: FieldType::I64,
@@ -158,6 +180,21 @@ mod tests {
             tag: FieldType::Len,
             index: 1,
             value: FieldValue::LenPrimitive(&[104, 101, 108, 108, 111]),
+        }];
+        assert_eq!(parsed, expected);
+    }
+
+    #[test]
+    fn test_repeated_submessage() {
+        let parsed = parse_proto(&[0x1a, 0x03, 0x08, 0x96, 0x01]).unwrap();
+        let expected = vec![Field {
+            tag: FieldType::Len,
+            index: 3,
+            value: FieldValue::LenSubmessage(vec![Field{
+                tag: FieldType::Varint,
+                index: 1,
+                value: FieldValue::Varint(150)
+            }]),
         }];
         assert_eq!(parsed, expected);
     }
