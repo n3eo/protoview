@@ -1,6 +1,8 @@
 mod field;
 mod fixed;
 mod proto_message;
+mod repeated;
 mod tag;
 mod varint;
-mod repeated;
+
+pub use proto_message::{ParseProtoError, parse_proto};

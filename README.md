@@ -10,8 +10,8 @@ The project is structured into three workspace members:
 - protoview-lib
   - [ ] Varint field numbers in tag
   - [ ] Implement LEN variant
-    - [X] Primitives 
-    - [ ] Sub messages
+    - [x] Primitives 
+    - [x] Sub messages
   - [ ] Float and double decoding in I32 & I64
   - [ ] Test bool and enum in Varint
   - [ ] Implement Mapping to schema

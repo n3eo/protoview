@@ -16,7 +16,7 @@ pub enum ParseProtoError {
     UnimplementedTag,
 }
 
-fn parse_proto(data: &[u8]) -> Result<Vec<Field<'_>>, ParseProtoError> {
+pub fn parse_proto(data: &[u8]) -> Result<Vec<Field<'_>>, ParseProtoError> {
     let mut skip_until: usize = 0;
     let mut ret = vec![];
 

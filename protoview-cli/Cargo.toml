@@ -4,4 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-protoview-lib = { version = "0.1.0", path = "../protoview-lib" }
+clap = { version = "4.5.60", features = ["derive"] }
+clap-stdin = "0.8.0"
+hex = { version = "0.4.3" }
+protoview-lib = { path = "../protoview-lib" }
+thiserror.workspace = true
