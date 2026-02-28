@@ -10,7 +10,7 @@ use protoview_lib::parse_proto;
 mod args;
 mod harmonize_input;
 
-#[derive(Error, Debug, PartialEq, Eq)]
+#[derive(Error, Debug, PartialEq)]
 pub enum Error {
     #[error("Invalid tag length during: {0}")]
     Harmonize(#[from] Convert2U8Error),

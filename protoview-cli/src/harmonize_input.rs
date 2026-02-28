@@ -1,17 +1,20 @@
 use std::{num::ParseIntError, sync::LazyLock};
 
+use base64::{DecodeError, Engine, prelude::BASE64_STANDARD};
 use hex::FromHexError;
 use regex::Regex;
 use thiserror::Error;
 
 use crate::args::Format;
 
-#[derive(Error, Debug, PartialEq, Eq)]
+#[derive(Error, Debug, PartialEq)]
 pub enum Convert2U8Error {
-    #[error("Invalid hex string passed.")]
-    DecodeHex,
-    #[error("Could not parse as unsigned integer: {0}")]
-    UInt(#[from] ParseIntError),
+    #[error("Invalid hex string passed {0}")]
+    DecodeHex(#[from] FromHexError),
+    #[error("Invalid base64 string passed {0}")]
+    DecodeBase64(#[from] DecodeError),
+    #[error("Could not parse as unsigned/signed integer: {0}")]
+    Int(#[from] ParseIntError),
     #[error(transparent)]
     DetectFrom(#[from] DetectFormatError),
 }
@@ -21,7 +24,7 @@ pub(crate) fn harmonize_input_to_u8(
     format: &Format,
 ) -> Result<Vec<u8>, Convert2U8Error> {
     match format {
-        Format::Hex => hex::decode(data).map_err(|_| Convert2U8Error::DecodeHex),
+        Format::Hex => Ok(hex::decode(data)?),
         Format::Binary => todo!(),
         Format::U8Array => data
             .trim_start_matches("[")
@@ -35,11 +38,12 @@ pub(crate) fn harmonize_input_to_u8(
             .split(",")
             .map(|s| Ok(s.trim().parse::<i8>()? as u8))
             .collect(),
-        Format::Base64 => todo!(),
+        Format::Base64 => Ok(BASE64_STANDARD.decode(data)?),
         Format::Auto => {
             let detected_format = detect_format(data)?;
             println!("Detected format {detected_format}");
-            harmonize_input_to_u8(data, &detected_format)}
+            harmonize_input_to_u8(data, &detected_format)
+        }
     }
 }
 
