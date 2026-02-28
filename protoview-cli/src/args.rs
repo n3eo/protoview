@@ -20,6 +20,10 @@ pub struct Args {
 #[derive(Debug, Clone, ValueEnum)]
 pub enum Format {
     Hex,
+    /// Sequence of 0 and 1s. E.g. `0000100001111011`
+    BinaryString,
+    /// Binary contentn, e.g. from reading a file directly
+    /// Note: It is not possible to auto detect [`Format::Binary`].
     Binary,
     /// In the format of `[u8, u8, u8, ...]`
     U8Array,
@@ -34,6 +38,7 @@ impl std::fmt::Display for Format {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Format::Hex => write!(f, "hex"),
+            Format::BinaryString => write!(f, "binary-string"),
             Format::Binary => write!(f, "binary"),
             Format::U8Array => write!(f, "u8-array"),
             Format::I8Array => write!(f, "i8-array"),

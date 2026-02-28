@@ -25,7 +25,7 @@ pub(crate) fn harmonize_input_to_u8(
 ) -> Result<Vec<u8>, Convert2U8Error> {
     match format {
         Format::Hex => Ok(hex::decode(data)?),
-        Format::Binary => {            // Split into chunks of 8 bits and convert each to a byte
+        Format::BinaryString => {            // Split into chunks of 8 bits and convert each to a byte
             Ok(data
                 .as_bytes()
                 .chunks(8)
@@ -35,6 +35,7 @@ pub(crate) fn harmonize_input_to_u8(
                 })
                 .collect())
         }
+        Format::Binary => Ok(data.as_bytes().to_vec()),
         Format::U8Array => data
             .trim_start_matches("[")
             .trim_end_matches("]")
@@ -89,7 +90,7 @@ fn detect_format(data: &str) -> Result<Format, DetectFormatError> {
     } else if REGEX_HEX.is_match(data) {
         Ok(Format::Hex)
     } else if REGEX_BINARY.is_match(data) {
-        Ok(Format::Binary)
+        Ok(Format::BinaryString)
     } else if REGEX_BASE64.is_match(data) {
         Ok(Format::Base64)
     } else {
@@ -97,6 +98,7 @@ fn detect_format(data: &str) -> Result<Format, DetectFormatError> {
     }
 }
 
+#[cfg(test)]
 mod tests {
     use super::*;
 
@@ -115,10 +117,17 @@ mod tests {
         )
     }
     #[test]
+    fn test_harmonize_binary_string() {
+        assert_eq!(
+            vec![0x08, 0x7b],
+            harmonize_input_to_u8(&"0000100001111011".to_owned(), &Format::BinaryString).unwrap()
+        )
+    }
+    #[test]
     fn test_harmonize_binary() {
         assert_eq!(
             vec![0x08, 0x7b],
-            harmonize_input_to_u8(&"0000100001111011".to_owned(), &Format::Binary).unwrap()
+            harmonize_input_to_u8(&"\x08\x7b".to_owned(), &Format::Binary).unwrap()
         )
     }
     #[test]
