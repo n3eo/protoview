@@ -24,6 +24,7 @@ impl TryFrom<&u8> for FieldDescriptor {
     }
 }
 
+#[cfg(test)]
 mod tests {
     use crate::field::FieldType;
 

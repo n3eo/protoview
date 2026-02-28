@@ -100,6 +100,7 @@ pub fn parse_proto(data: &[u8]) -> Result<Vec<Field<'_>>, ParseProtoError> {
     Ok(ret)
 }
 
+#[cfg(test)]
 mod tests {
     use super::*;
 

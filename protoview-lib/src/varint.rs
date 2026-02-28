@@ -31,6 +31,7 @@ pub fn find_varint_length(data: &[u8]) -> usize {
     panic!("Invalid varint: no terminating byte found");
 }
 
+#[cfg(test)]
 mod tests {
     use super::*;
 

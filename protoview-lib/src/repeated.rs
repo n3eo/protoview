@@ -22,6 +22,7 @@ pub fn find_repeated_length(data: &[u8]) -> RepeatedLength {
     }
 }
 
+#[cfg(test)]
 mod tests {
     use super::*;
 

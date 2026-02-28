@@ -14,6 +14,7 @@ pub fn parse_fixed64(data: &[u8; 8]) -> i32 {
     ret as i32
 }
 
+#[cfg(test)]
 mod tests {
     use crate::fixed::{parse_fixed32, parse_fixed64};
 
