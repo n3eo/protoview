@@ -6,6 +6,10 @@ The project is structured into three workspace members:
 - `protoview-cli`: Wraps the lib to be used in the terminal
 - `protoview-gui`: Warps the lib in an easy to use GUI
 
+## Installation
+### CLI
+To install the cli you can run the following command: `cargo install --git https://github.com/n3eo/protoview protoview-cli`
+
 # TODO:
 - protoview-lib
   - [ ] Varint field numbers in tag
