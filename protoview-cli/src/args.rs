@@ -8,7 +8,7 @@ pub struct Args {
     /// from STDIN when specifying the value as `-`
     #[arg(short, long)]
     pub raw: MaybeStdin<String>,
-    #[arg(short, long, default_value = "hex")]
+    #[arg(short, long, default_value = "auto")]
     pub format: Format,
 }
 
@@ -16,7 +16,24 @@ pub struct Args {
 pub enum Format {
     Hex,
     Binary,
-    /// In the format of [u8, u8, u8]
-    DecimalArray,
+    /// In the format of `[u8, u8, u8, ...]`
+    U8Array,
+    /// In the format of `[i8, i8, i8, ...]`
+    I8Array,
     Base64,
+    /// Try to detect the format automatically
+    Auto,
+}
+
+impl std::fmt::Display for Format {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Format::Hex => write!(f, "hex"),
+            Format::Binary => write!(f, "binary"),
+            Format::U8Array => write!(f, "u8-array"),
+            Format::I8Array => write!(f, "i8-array"),
+            Format::Base64 => write!(f, "base64"),
+            Format::Auto => write!(f, "auto"),
+        }
+    }
 }

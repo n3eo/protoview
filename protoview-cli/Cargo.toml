@@ -3,9 +3,14 @@ name = "protoview-cli"
 version = "0.1.0"
 edition = "2024"
 
+[[bin]]
+name = "protoview-cli"
+path = "src/main.rs"
+
 [dependencies]
 clap = { version = "4.5.60", features = ["derive"] }
 clap-stdin = "0.8.0"
 hex = { version = "0.4.3" }
 protoview-lib = { path = "../protoview-lib" }
+regex = "1.12.3"
 thiserror.workspace = true
