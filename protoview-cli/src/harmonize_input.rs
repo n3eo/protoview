@@ -25,7 +25,16 @@ pub(crate) fn harmonize_input_to_u8(
 ) -> Result<Vec<u8>, Convert2U8Error> {
     match format {
         Format::Hex => Ok(hex::decode(data)?),
-        Format::Binary => todo!(),
+        Format::Binary => {            // Split into chunks of 8 bits and convert each to a byte
+            Ok(data
+                .as_bytes()
+                .chunks(8)
+                .map(|chunk| {
+                    let byte_str = std::str::from_utf8(chunk).unwrap();
+                    u8::from_str_radix(byte_str, 2).unwrap()
+                })
+                .collect())
+        }
         Format::U8Array => data
             .trim_start_matches("[")
             .trim_end_matches("]")
@@ -85,5 +94,45 @@ fn detect_format(data: &str) -> Result<Format, DetectFormatError> {
         Ok(Format::Base64)
     } else {
         Err(DetectFormatError::CouldNotDetect)
+    }
+}
+
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_harmonize_base64() {
+        assert_eq!(
+            vec![0x08, 0x7b, 0x12, 0x05, 0x68, 0x65, 0x6c, 0x6c, 0x6f],
+            harmonize_input_to_u8(&"CHsSBWhlbGxv".to_owned(), &Format::Base64).unwrap()
+        )
+    }
+    #[test]
+    fn test_harmonize_hex() {
+        assert_eq!(
+            vec![0x08, 0x7b, 0x12, 0x05, 0x68, 0x65, 0x6c, 0x6c, 0x6f],
+            harmonize_input_to_u8(&"087b120568656c6c6f".to_owned(), &Format::Hex).unwrap()
+        )
+    }
+    #[test]
+    fn test_harmonize_binary() {
+        assert_eq!(
+            vec![0x08, 0x7b],
+            harmonize_input_to_u8(&"0000100001111011".to_owned(), &Format::Binary).unwrap()
+        )
+    }
+    #[test]
+    fn test_harmonize_i8_array() {
+        assert_eq!(
+            vec![0x08, 0x8b, 0x01],
+            harmonize_input_to_u8(&"[8, -117, 1]".to_owned(), &Format::I8Array).unwrap()
+        )
+    }
+    #[test]
+    fn test_harmonize_u8_array() {
+        assert_eq!(
+            vec![0x08, 0x8b, 0x01],
+            harmonize_input_to_u8(&"[8, 139, 1]".to_owned(), &Format::U8Array).unwrap()
+        )
     }
 }
