@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use clap::{Parser, ValueEnum};
 use clap_stdin::MaybeStdin;
 
@@ -6,8 +8,11 @@ use clap_stdin::MaybeStdin;
 pub struct Args {
     /// Can either be passed with the argument or
     /// from STDIN when specifying the value as `-`
-    #[arg(short, long)]
-    pub raw: MaybeStdin<String>,
+    #[arg(short, long, group = "source")]
+    pub raw: Option<MaybeStdin<String>>,
+    /// Path to a file containing the binary protobuf
+    #[arg(short, long, group = "source")]
+    pub path: Option<PathBuf>,
     #[arg(short, long, default_value = "auto")]
     pub format: Format,
 }
