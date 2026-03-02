@@ -1,4 +1,4 @@
-use crate::tag::FieldDescriptor;
+use std::fmt;
 use thiserror::Error;
 
 #[derive(Debug, PartialEq, Eq)]
@@ -31,6 +31,19 @@ pub enum FieldTypeError {
     InvalidWireType(u8),
 }
 
+impl fmt::Display for FieldType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            FieldType::Varint => write!(f, "Varint"),
+            FieldType::I64 => write!(f, "I64"),
+            FieldType::Len => write!(f, "Len"),
+            FieldType::SGroup => write!(f, "SGroup"),
+            FieldType::EGroup => write!(f, "EGroup"),
+            FieldType::I32 => write!(f, "I32"),
+        }
+    }
+}
+
 impl TryFrom<&u8> for FieldType {
     type Error = FieldTypeError;
 
@@ -44,6 +57,49 @@ impl TryFrom<&u8> for FieldType {
             0b000101 => Ok(FieldType::I32),
             invalid_type => Err(FieldTypeError::InvalidWireType(invalid_type)),
         }
+    }
+}
+
+impl<'a> fmt::Display for FieldValue<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            FieldValue::Varint(value) => write!(f, "{}", value),
+            FieldValue::I64(value) => write!(f, "{}", value),
+            FieldValue::LenPrimitive(bytes) => {
+                // Try to display as UTF-8 string if possible, otherwise show as hex
+                if let Ok(string) = std::str::from_utf8(bytes) {
+                    write!(f, "\"{}\"", string)
+                } else {
+                    write!(f, "{:?}", bytes)
+                }
+            }
+            FieldValue::LenSubmessage(fields) => {
+                write!(f, "[\n")?;
+                for field in fields.iter() {
+                    write!(f, "  {}", field)?;
+                }
+                write!(f, "]")
+            }
+            FieldValue::SGroup => write!(f, "SGroup"),
+            FieldValue::EGroup => write!(f, "EGroup"),
+            FieldValue::I32(value) => write!(f, "{}", value),
+        }
+    }
+}
+
+impl<'a> fmt::Display for Field<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}:", self.index)?;
+        match &self.value {
+            FieldValue::LenSubmessage(fields) => {
+                write!(f, "  <SubmessageType>\n")?;
+                for field in fields.iter() {
+                    write!(f, "    {}: {}\n", field.index, field.value)?;
+                }
+            }
+            _ => write!(f, "  {}\n", self.value)?,
+        }
+        Ok(())
     }
 }
 
@@ -146,5 +202,35 @@ mod tests {
         // Test that invalid wire types return an error even with higher bits set
         let result = FieldType::try_from(&0b10001111);
         assert!(matches!(result, Err(FieldTypeError::InvalidWireType(7))));
+    }
+
+    #[test]
+    fn test_display_implementation() {
+        // Test FieldType display
+        assert_eq!(format!("{}", FieldType::Varint), "Varint");
+        assert_eq!(format!("{}", FieldType::I64), "I64");
+        assert_eq!(format!("{}", FieldType::Len), "Len");
+        assert_eq!(format!("{}", FieldType::I32), "I32");
+
+        // Test FieldValue display
+        assert_eq!(format!("{}", FieldValue::Varint(42)), "42");
+        assert_eq!(format!("{}", FieldValue::I32(123)), "123");
+        assert_eq!(format!("{}", FieldValue::LenPrimitive(b"hello")), "\"hello\"");
+        assert_eq!(format!("{}", FieldValue::LenPrimitive(&[0xFF, 0xFE])), "[255, 254]");
+
+        // Test Field display
+        let field = Field {
+            tag: FieldType::Varint,
+            index: 1,
+            value: FieldValue::Varint(42),
+        };
+        assert_eq!(format!("{}", field), "1:\n  42\n");
+
+        let string_field = Field {
+            tag: FieldType::Len,
+            index: 2,
+            value: FieldValue::LenPrimitive(b"test string"),
+        };
+        assert_eq!(format!("{}", string_field), "2:\n  \"test string\"\n");
     }
 }

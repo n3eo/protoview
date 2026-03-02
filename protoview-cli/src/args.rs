@@ -15,6 +15,8 @@ pub struct Args {
     pub path: Option<PathBuf>,
     #[arg(short, long, default_value = "auto")]
     pub format: Format,
+    #[arg(long, default_value = "false")]
+    pub debug: bool
 }
 
 #[derive(Debug, Clone, ValueEnum)]

@@ -5,4 +5,4 @@ mod repeated;
 mod tag;
 mod varint;
 
-pub use proto_message::{ParseProtoError, parse_proto};
+pub use proto_message::{FieldList, ParseProtoError, parse_proto};

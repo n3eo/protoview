@@ -26,11 +26,13 @@ To install the cli you can run the following command: `cargo install --git https
     - [ ] Store parsed data in a tree structure
   - [ ] Schema parsing
 - protoview-cli
-  - [ ] implement cli
+  - [x] implement cli
+  - [ ] pretty print
+    - [ ] Fix recursive indentation
   - [ ] Add colors to output
-  - [ ] support bytes, hex
-    - [ ] auto mode
-  - [ ] stdin & file reading
+  - [x] support bytes, hex
+    - [x] auto mode
+  - [x] stdin & file reading
 - protoview-gui
   - [ ] Implement GUI
 - TUI?
