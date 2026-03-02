@@ -87,19 +87,29 @@ impl<'a> fmt::Display for FieldValue<'a> {
     }
 }
 
-impl<'a> fmt::Display for Field<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}:", self.index)?;
+impl<'a> Field<'a> {
+    /// Display the field with optional indentation
+    fn display_with_indent(&self, f: &mut fmt::Formatter<'_>, indent: &str) -> fmt::Result {
+        write!(f, "{}", self.index)?;
         match &self.value {
             FieldValue::LenSubmessage(fields) => {
-                write!(f, "  <SubmessageType>\n")?;
+                write!(f, ": SubMessage = {{\n")?;
+                let new_indent = format!("{}{}", indent, "    ");
                 for field in fields.iter() {
-                    write!(f, "    {}: {}\n", field.index, field.value)?;
+                    write!(f, "{}{}", indent, "    ")?;
+                    field.display_with_indent(f, &new_indent)?;
                 }
+                write!(f, "{}}}\n", indent)?;
             }
-            _ => write!(f, "  {}\n", self.value)?,
+            _ => write!(f, ": {} = {}\n", self.tag, self.value)?,
         }
         Ok(())
+    }
+}
+
+impl<'a> fmt::Display for Field<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.display_with_indent(f, "")
     }
 }
 
@@ -224,13 +234,13 @@ mod tests {
             index: 1,
             value: FieldValue::Varint(42),
         };
-        assert_eq!(format!("{}", field), "1:\n  42\n");
+        assert_eq!(format!("{}", field), "1: Varint = 42\n");
 
         let string_field = Field {
             tag: FieldType::Len,
             index: 2,
             value: FieldValue::LenPrimitive(b"test string"),
         };
-        assert_eq!(format!("{}", string_field), "2:\n  \"test string\"\n");
+        assert_eq!(format!("{}", string_field), "2: Len = \"test string\"\n");
     }
 }
