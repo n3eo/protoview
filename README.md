@@ -65,3 +65,15 @@ protoview-cli --path /tmp/test.proto
 - protoview-gui
   - [ ] Implement GUI
 - TUI?
+
+# LLM Disclaimer
+
+This project uses Large Language Models (LLMs) for some debugging, refactoring, documentation and tests. 
+However, the main logic, core functionality and intital tests are all written by hand. 
+All code, including any suggestions or modifications made by LLMs, is manually reviewed and not blindly used.
+
+<a href="https://brainmade.org">
+  <img src="https://brainmade.org/88x31-light.png" alt="brainmade.org">
+</a>
+
+by [brainmade.org](https://brainmade.org/) (tough possibly more than 10% was created using "AI")
