@@ -10,6 +10,19 @@ The project is structured into three workspace members:
 ### CLI
 To install the cli you can run the following command: `cargo install --git https://github.com/n3eo/protoview protoview-cli`
 
+## Usage
+### CLI
+The CLI can read from STDIN by specifying "-" for the `--raw` argument or by directly passing any of the supported input types:
+`echo CgVoZWxsbxIRCgV3b3JsZBABGgYIBRICCCo= | protoview-cli --raw -`
+or
+`protoview-cli --raw CgVoZWxsbxIRCgV3b3JsZBABGgYIBRICCCo=`.
+
+It is also possible to directly read from a file:
+```
+echo CgVoZWxsbxIRCgV3b3JsZBABGgYIBRICCCo= > /tmp/test.proto
+protoview-cli --path /tmp/test.proto
+```
+
 # TODO:
 - protoview-lib
   - [ ] Varint field numbers in tag
