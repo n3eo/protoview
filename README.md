@@ -23,6 +23,22 @@ echo CgVoZWxsbxIRCgV3b3JsZBABGgYIBRICCCo= > /tmp/test.proto
 protoview-cli --path /tmp/test.proto
 ```
 
+This will produce the output
+```
+Detected format base64
+1: Len = "hello"
+2: SubMessage = {
+    1: Len = "world"
+    2: Varint = 1
+    3: SubMessage = {
+        1: Varint = 5
+        2: SubMessage = {
+            1: Varint = 42
+        }
+    }
+}
+```
+
 # TODO:
 - protoview-lib
   - [ ] Varint field numbers in tag
