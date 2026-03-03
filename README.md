@@ -17,12 +17,6 @@ The CLI can read from STDIN by specifying "-" for the `--raw` argument or by dir
 or
 `protoview-cli --raw CgVoZWxsbxIRCgV3b3JsZBABGgYIBRICCCo=`.
 
-It is also possible to directly read from a file:
-```
-echo CgVoZWxsbxIRCgV3b3JsZBABGgYIBRICCCo= > /tmp/test.proto
-protoview-cli --path /tmp/test.proto
-```
-
 This will produce the output
 ```
 Detected format base64
@@ -37,6 +31,12 @@ Detected format base64
         }
     }
 }
+```
+
+It is also possible to directly read from a file which currently only support reading proto binary files:
+```
+echo -n \x08\x01 > /tmp/test.proto
+protoview-cli --path /tmp/test.proto
 ```
 
 # TODO:
