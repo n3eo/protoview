@@ -16,7 +16,7 @@ pub struct Args {
     #[arg(short, long, default_value = "auto")]
     pub format: Format,
     #[arg(long, default_value = "false")]
-    pub debug: bool
+    pub debug: bool,
 }
 
 #[derive(Debug, Clone, ValueEnum)]

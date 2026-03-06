@@ -7,7 +7,7 @@ use crate::{
     args::Args,
     harmonize_input::{Convert2U8Error, harmonize_input_to_u8},
 };
-use protoview_lib::{parse_proto, FieldList, ParseProtoError};
+use protoview_lib::{FieldList, ParseProtoError, parse_proto};
 
 mod args;
 mod harmonize_input;
@@ -27,7 +27,8 @@ fn main() -> Result<(), Error> {
 
     let input = match args.path {
         Some(path) => fs::read(path)?,
-        None => args.raw
+        None => args
+            .raw
             .map(|raw| harmonize_input_to_u8(&raw.into_inner(), &args.format))
             .expect("Neither a file or a raw input is defined")?,
     };

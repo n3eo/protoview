@@ -25,7 +25,8 @@ pub(crate) fn harmonize_input_to_u8(
 ) -> Result<Vec<u8>, Convert2U8Error> {
     match format {
         Format::Hex => Ok(hex::decode(data)?),
-        Format::BinaryString => {            // Split into chunks of 8 bits and convert each to a byte
+        Format::BinaryString => {
+            // Split into chunks of 8 bits and convert each to a byte
             Ok(data
                 .as_bytes()
                 .chunks(8)
