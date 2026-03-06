@@ -74,7 +74,7 @@ impl<'a> fmt::Display for FieldValue<'a> {
                 }
             }
             FieldValue::LenSubmessage(fields) => {
-                write!(f, "[\n")?;
+                writeln!(f, "[")?;
                 for field in fields.iter() {
                     write!(f, "  {}", field)?;
                 }
@@ -93,15 +93,15 @@ impl<'a> Field<'a> {
         write!(f, "{}", self.index)?;
         match &self.value {
             FieldValue::LenSubmessage(fields) => {
-                write!(f, ": SubMessage = {{\n")?;
+                writeln!(f, ": SubMessage = {{")?;
                 let new_indent = format!("{}{}", indent, "    ");
                 for field in fields.iter() {
-                    write!(f, "{}{}", indent, "    ")?;
+                    write!(f, "{}    ", indent)?;
                     field.display_with_indent(f, &new_indent)?;
                 }
-                write!(f, "{}}}\n", indent)?;
+                writeln!(f, "{}}}", indent)?;
             }
-            _ => write!(f, ": {} = {}\n", self.tag, self.value)?,
+            _ => writeln!(f, ": {} = {}", self.tag, self.value)?,
         }
         Ok(())
     }
