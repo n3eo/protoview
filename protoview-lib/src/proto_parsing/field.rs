@@ -225,8 +225,14 @@ mod tests {
         // Test FieldValue display
         assert_eq!(format!("{}", FieldValue::Varint(42)), "42");
         assert_eq!(format!("{}", FieldValue::I32(123)), "123");
-        assert_eq!(format!("{}", FieldValue::LenPrimitive(b"hello")), "\"hello\"");
-        assert_eq!(format!("{}", FieldValue::LenPrimitive(&[0xFF, 0xFE])), "[255, 254]");
+        assert_eq!(
+            format!("{}", FieldValue::LenPrimitive(b"hello")),
+            "\"hello\""
+        );
+        assert_eq!(
+            format!("{}", FieldValue::LenPrimitive(&[0xFF, 0xFE])),
+            "[255, 254]"
+        );
 
         // Test Field display
         let field = Field {

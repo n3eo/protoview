@@ -2,7 +2,7 @@ use std::fmt;
 
 use thiserror::Error;
 
-use crate::{
+use super::{
     field::{Field, FieldType, FieldValue},
     fixed::{parse_fixed32, parse_fixed64},
     repeated::find_repeated_length,
@@ -205,10 +205,10 @@ mod tests {
         let expected = vec![Field {
             tag: FieldType::Len,
             index: 3,
-            value: FieldValue::LenSubmessage(vec![Field{
+            value: FieldValue::LenSubmessage(vec![Field {
                 tag: FieldType::Varint,
                 index: 1,
-                value: FieldValue::Varint(150)
+                value: FieldValue::Varint(150),
             }]),
         }];
         assert_eq!(parsed, expected);

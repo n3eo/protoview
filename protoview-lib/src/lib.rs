@@ -1,8 +1,4 @@
-mod field;
-mod fixed;
-mod proto_message;
-mod repeated;
-mod tag;
-mod varint;
+mod proto_parsing;
+mod schema_parsing;
 
-pub use proto_message::{FieldList, ParseProtoError, parse_proto};
+pub use proto_parsing::proto_message::{FieldList, ParseProtoError, parse_proto};

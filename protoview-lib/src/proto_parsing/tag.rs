@@ -1,4 +1,4 @@
-use crate::field::{FieldValue, FieldType, FieldTypeError};
+use super::field::{FieldType, FieldTypeError};
 use thiserror::Error;
 
 #[derive(Debug, PartialEq, Eq)]
@@ -26,7 +26,7 @@ impl TryFrom<&u8> for FieldDescriptor {
 
 #[cfg(test)]
 mod tests {
-    use crate::field::FieldType;
+    use super::super::field::FieldType;
 
     use super::*;
 

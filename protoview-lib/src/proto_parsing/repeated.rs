@@ -1,4 +1,4 @@
-use crate::varint::{find_varint_length, parse_varint};
+use super::varint::{find_varint_length, parse_varint};
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct RepeatedLength {

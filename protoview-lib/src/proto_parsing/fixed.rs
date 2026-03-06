@@ -16,7 +16,7 @@ pub fn parse_fixed64(data: &[u8; 8]) -> i32 {
 
 #[cfg(test)]
 mod tests {
-    use crate::fixed::{parse_fixed32, parse_fixed64};
+    use super::*;
 
     #[test]
     fn test_fixed32_parsing() {

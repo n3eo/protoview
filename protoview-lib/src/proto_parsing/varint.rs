@@ -13,12 +13,10 @@ pub fn find_varint_length(data: &[u8]) -> usize {
         panic!("Cannot find varint length in empty slice");
     }
 
-    let mut length = 0;
     for (i, d) in data.iter().enumerate() {
         if d & 0b10000000 == 0b00000000 {
             return i + 1;
         }
-        length += 1;
 
         // Prevent infinite loops and invalid varints that are too long
         if i >= 10 {
