@@ -1,4 +1,4 @@
-use super::field::{FieldType, FieldTypeError};
+use crate::field::{FieldType, FieldTypeError};
 use thiserror::Error;
 
 #[derive(Debug, PartialEq, Eq)]
@@ -13,20 +13,20 @@ pub enum FieldDescriptorError {
     InvalidFieldDescriptor(#[from] FieldTypeError),
 }
 
-impl TryFrom<&u8> for FieldDescriptor {
+impl TryFrom<&usize> for FieldDescriptor {
     type Error = FieldDescriptorError;
 
-    fn try_from(value: &u8) -> Result<Self, Self::Error> {
+    fn try_from(value: &usize) -> Result<Self, Self::Error> {
         Ok(FieldDescriptor {
             field_type: FieldType::try_from(value)?,
-            index: (value >> 3) as usize,
+            index: (value >> 3),
         })
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::super::field::FieldType;
+    use crate::{field::FieldType, varint::parse_varint};
 
     use super::*;
 
@@ -55,6 +55,28 @@ mod tests {
             FieldDescriptor {
                 field_type: FieldType::Varint,
                 index: 3
+            }
+        );
+    }
+
+    #[test]
+    fn test_get_varint_tag() {
+        let usize_tag = parse_varint(&[0x80, 0x08]) as usize;
+        // 0x80 0X08 = 0b1000000  0b00001000 tag= 0b00011 (3), wire type = 0b000 (0)
+        assert_eq!(
+            FieldDescriptor::try_from(&usize_tag).unwrap(),
+            FieldDescriptor {
+                field_type: FieldType::Varint,
+                index: 128
+            }
+        );
+
+        let usize_tag = parse_varint(&[0x80, 0xf1, 0x04]) as usize;
+        assert_eq!(
+            FieldDescriptor::try_from(&usize_tag).unwrap(),
+            FieldDescriptor {
+                field_type: FieldType::Varint,
+                index: 10000
             }
         );
     }

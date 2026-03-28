@@ -41,8 +41,8 @@ protoview-cli --path /tmp/test.proto
 
 # TODO:
 - protoview-lib
-  - [ ] Varint field numbers in tag
-  - [ ] Implement LEN variant
+  - [x] Varint field numbers in tag
+  - [x] Implement LEN variant
     - [x] Primitives 
     - [x] Sub messages
   - [ ] Float and double decoding in I32 & I64
@@ -56,12 +56,13 @@ protoview-cli --path /tmp/test.proto
   - [ ] Schema parsing
 - protoview-cli
   - [x] implement cli
-  - [ ] pretty print
-    - [ ] Fix recursive indentation
+  - [x] pretty print
+    - [x] Fix recursive indentation
   - [ ] Add colors to output
   - [x] support bytes, hex
     - [x] auto mode
   - [x] stdin & file reading
+  - [ ] Multi representation
 - protoview-gui
   - [ ] Implement GUI
 - TUI?

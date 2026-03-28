@@ -28,7 +28,7 @@ pub enum FieldType {
 #[derive(Error, Debug, PartialEq, Eq)]
 pub enum FieldTypeError {
     #[error("Invalid wire type: {0}")]
-    InvalidWireType(u8),
+    InvalidWireType(usize),
 }
 
 impl fmt::Display for FieldType {
@@ -44,10 +44,10 @@ impl fmt::Display for FieldType {
     }
 }
 
-impl TryFrom<&u8> for FieldType {
+impl TryFrom<&usize> for FieldType {
     type Error = FieldTypeError;
 
-    fn try_from(value: &u8) -> Result<Self, Self::Error> {
+    fn try_from(value: &usize) -> Result<Self, Self::Error> {
         match value & 0b00000111 {
             0b000000 => Ok(FieldType::Varint),
             0b000001 => Ok(FieldType::I64),

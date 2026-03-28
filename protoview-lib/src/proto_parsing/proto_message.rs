@@ -29,24 +29,30 @@ pub fn parse_proto(data: &[u8]) -> Result<Vec<Field<'_>>, ParseProtoError> {
         }
 
         // PANIC: for loop guarantees index exists when used without modification
-        let byte = data[idx];
+        let tag_varint_len = find_varint_length(&data[idx..]);
+        // Protobuf tag field can't be a signed interger
+        let tag_bytes = parse_varint(&data[idx..idx + tag_varint_len]) as usize;
 
-        let FieldDescriptor { field_type, index } = FieldDescriptor::try_from(&byte)?;
+        let FieldDescriptor { field_type, index } = FieldDescriptor::try_from(&tag_bytes)?;
 
         let tag = match field_type {
             FieldType::Varint => {
-                let var_int_len = find_varint_length(&data[idx + 1..]);
-                skip_until = idx + 1 + var_int_len;
+                let var_int_len = find_varint_length(&data[idx + tag_varint_len..]);
+                skip_until = idx + tag_varint_len + var_int_len;
                 Field {
                     tag: FieldType::Varint,
                     index,
-                    value: FieldValue::Varint(parse_varint(&data[idx + 1..idx + 1 + var_int_len])),
+                    value: FieldValue::Varint(parse_varint(
+                        &data[idx + tag_varint_len..idx + tag_varint_len + var_int_len],
+                    )),
                 }
             }
             FieldType::I64 => {
                 // Convert slice to array and parse as fixed32, then convert to isize
-                let bytes: [u8; 8] = data[idx + 1..idx + 9].try_into().unwrap();
-                skip_until = idx + 9;
+                let bytes: [u8; 8] = data[idx + tag_varint_len..idx + tag_varint_len + 8]
+                    .try_into()
+                    .unwrap();
+                skip_until = idx + tag_varint_len + 8;
                 Field {
                     tag: FieldType::I64,
                     index,
@@ -55,16 +61,20 @@ pub fn parse_proto(data: &[u8]) -> Result<Vec<Field<'_>>, ParseProtoError> {
             }
             FieldType::Len => {
                 let repeated_length = find_repeated_length(&data[idx + 1..]);
-                skip_until = idx + 1 + repeated_length.skip_bytes + repeated_length.length;
+                skip_until =
+                    idx + tag_varint_len + repeated_length.skip_bytes + repeated_length.length;
 
                 let len_data = &data[idx + 1 + repeated_length.skip_bytes
-                    ..idx + 1 + repeated_length.skip_bytes + repeated_length.length];
+                    ..idx + tag_varint_len + repeated_length.skip_bytes + repeated_length.length];
+
+                // PANIC: for loop guarantees index exists when used without modification
+                let tag_varint_len = find_varint_length(len_data);
+                // Protobuf tag field can't be a signed interger
+                let tag_bytes = parse_varint(&data[..tag_varint_len]) as usize;
 
                 // Check if the first byte of the len data is a valid Protobuf Field Tag as a proxy
                 // if the bytes should be parsed as a submessage.
-                let test_is_sub_message = FieldDescriptor::try_from(
-                    len_data.first().expect("data has a positive length"),
-                );
+                let test_is_sub_message = FieldDescriptor::try_from(&tag_bytes);
 
                 // As we can't determine the kind of a submessage by looking at the schema
                 // we use the field descriptor parsing and message parsing as proxies.
@@ -87,8 +97,10 @@ pub fn parse_proto(data: &[u8]) -> Result<Vec<Field<'_>>, ParseProtoError> {
             FieldType::SGroup | FieldType::EGroup => return Err(ParseProtoError::UnimplementedTag),
             FieldType::I32 => {
                 // Convert slice to array and parse as fixed32, then convert to isize
-                let bytes: [u8; 4] = data[idx + 1..idx + 5].try_into().unwrap();
-                skip_until = idx + 5;
+                let bytes: [u8; 4] = data[idx + tag_varint_len..idx + tag_varint_len + 4]
+                    .try_into()
+                    .unwrap();
+                skip_until = idx + tag_varint_len + 4;
                 Field {
                     tag: FieldType::I32,
                     index,
@@ -210,6 +222,17 @@ mod tests {
                 index: 1,
                 value: FieldValue::Varint(150),
             }]),
+        }];
+        assert_eq!(parsed, expected);
+    }
+
+    #[test]
+    fn test_varint_tag() {
+        let parsed = parse_proto(&[0x80, 0x08, 0x01]).unwrap();
+        let expected = vec![Field {
+            tag: FieldType::Varint,
+            index: 128,
+            value: FieldValue::Varint(1),
         }];
         assert_eq!(parsed, expected);
     }
