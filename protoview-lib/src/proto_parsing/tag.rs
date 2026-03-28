@@ -1,4 +1,4 @@
-use crate::field::{FieldType, FieldTypeError};
+use crate::proto_parsing::field::{FieldType, FieldTypeError};
 use thiserror::Error;
 
 #[derive(Debug, PartialEq, Eq)]
@@ -26,7 +26,7 @@ impl TryFrom<&usize> for FieldDescriptor {
 
 #[cfg(test)]
 mod tests {
-    use crate::{field::FieldType, varint::parse_varint};
+    use crate::proto_parsing::varint::parse_varint;
 
     use super::*;
 
