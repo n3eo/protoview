@@ -1,6 +1,8 @@
 use std::fmt;
 use thiserror::Error;
 
+use crate::proto_parsing::fixed::{i32_to_f32, i64_to_f64};
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct Field<'a> {
     /// Tag describing the first by of the Tag-Lenght-Value sequence
@@ -64,7 +66,7 @@ impl<'a> fmt::Display for FieldValue<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             FieldValue::Varint(value) => write!(f, "{}", value),
-            FieldValue::I64(value) => write!(f, "{}", value),
+            FieldValue::I64(value) => write!(f, "{}, {}", value, i64_to_f64(*value as i64)),
             FieldValue::LenPrimitive(bytes) => {
                 // Try to display as UTF-8 string if possible, otherwise show as hex
                 if let Ok(string) = std::str::from_utf8(bytes) {
@@ -82,7 +84,7 @@ impl<'a> fmt::Display for FieldValue<'a> {
             }
             FieldValue::SGroup => write!(f, "SGroup"),
             FieldValue::EGroup => write!(f, "EGroup"),
-            FieldValue::I32(value) => write!(f, "{}", value),
+            FieldValue::I32(value) => write!(f, "{}, {}", value, i64_to_f64(*value as i64)),
         }
     }
 }
@@ -100,6 +102,18 @@ impl<'a> Field<'a> {
                     field.display_with_indent(f, &new_indent)?;
                 }
                 writeln!(f, "{}}}", indent)?;
+            }
+            FieldValue::I32(value) | FieldValue::I64(value)=> {
+                let new_indent = format!("{}{}", indent, "    ");
+                writeln!(
+                    f,
+                    ": {} = \n{}int   : {}\n{}float : {}",
+                    self.tag,
+                    new_indent,
+                    value,
+                    new_indent,
+                    i32_to_f32(*value as i32)
+                )?;
             }
             _ => writeln!(f, ": {} = {}", self.tag, self.value)?,
         }
@@ -224,7 +238,18 @@ mod tests {
 
         // Test FieldValue display
         assert_eq!(format!("{}", FieldValue::Varint(42)), "42");
-        assert_eq!(format!("{}", FieldValue::I32(123)), "123");
+        assert_eq!(
+            format!("{}", FieldValue::I32(123)),
+            "fixed integer  : 123\nfloating number: 0.000000000000000000000000000000000000000000172"
+        );
+        assert_eq!(
+            format!("{}", FieldValue::I32(1065353216)),
+            "fixed integer  : 1065353216\nfloating number: 1"
+        );
+        assert_eq!(
+            format!("{}", FieldValue::I64(456)),
+            "fixed integer  : 456\nfloating number: 0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002253"
+        );
         assert_eq!(
             format!("{}", FieldValue::LenPrimitive(b"hello")),
             "\"hello\""
