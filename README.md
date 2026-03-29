@@ -45,7 +45,7 @@ protoview-cli --path /tmp/test.proto
   - [x] Implement LEN variant
     - [x] Primitives 
     - [x] Sub messages
-  - [ ] Float and double decoding in I32 & I64
+  - [x] Float and double decoding in I32 & I64
   - [ ] Test bool and enum in Varint
   - [ ] Implement Mapping to schema
   - [ ] Extend test cases
@@ -63,6 +63,8 @@ protoview-cli --path /tmp/test.proto
     - [x] auto mode
   - [x] stdin & file reading
   - [ ] Multi representation
+    - [x] fixed
+    - [ ] varint
 - protoview-gui
   - [ ] Implement GUI
 - TUI?
