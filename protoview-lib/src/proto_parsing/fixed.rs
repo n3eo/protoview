@@ -6,12 +6,20 @@ pub fn parse_fixed32(data: &[u8; 4]) -> i32 {
     ret as i32
 }
 
-pub fn parse_fixed64(data: &[u8; 8]) -> i32 {
+pub fn i64_to_f64(data: i64) -> f64 {
+    f64::from_le_bytes(data.to_le_bytes())
+}
+
+pub fn parse_fixed64(data: &[u8; 8]) -> i64 {
     let mut ret: isize = 0;
     for i in data.iter().rev() {
         ret = (ret << 8) | (*i as isize);
     }
-    ret as i32
+    ret as i64
+}
+
+pub fn i32_to_f32(data: i32) -> f32 {
+    f32::from_le_bytes(data.to_le_bytes())
 }
 
 #[cfg(test)]
@@ -109,13 +117,12 @@ mod tests {
 
     #[test]
     fn test_fixed64_large_values() {
-        // Test large 64-bit values (note: parse_fixed64 returns i32, so we're limited to 32-bit range)
         assert_eq!(
             2147483647,
             parse_fixed64(&[0xff, 0xff, 0xff, 0x7f, 0x00, 0x00, 0x00, 0x00])
         );
         assert_eq!(
-            -2147483648,
+            2147483648,
             parse_fixed64(&[0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00, 0x00])
         );
 
@@ -152,5 +159,34 @@ mod tests {
             4294967254,
             parse_fixed64(&[0xd6, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff]) as u32
         );
+    }
+
+    #[test]
+    fn test_double() {
+        assert_eq!(
+            1.0,
+            i64_to_f64(parse_fixed64(&[
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xf0, 0x3f
+            ]))
+        );
+        assert_eq!(
+            1.5,
+            i64_to_f64(parse_fixed64(&[
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xf8, 0x3f
+            ]))
+        );
+        assert_eq!(
+            25.4,
+            i64_to_f64(parse_fixed64(&[
+                0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x39, 0x40
+            ]))
+        );
+    }
+
+    #[test]
+    fn test_float() {
+        assert_eq!(1.0, i32_to_f32(parse_fixed32(&[0x00, 0x00, 0x80, 0x3f])));
+        assert_eq!(1.5, i32_to_f32(parse_fixed32(&[0x00, 0x00, 0xc0, 0x3f])));
+        assert_eq!(25.4, i32_to_f32(parse_fixed32(&[0x33, 0x33, 0xcb, 0x41])));
     }
 }
