@@ -1,8 +1,6 @@
 use std::fmt;
 use thiserror::Error;
 
-use crate::proto_parsing::fixed::{i32_to_f32, i64_to_f64};
-
 #[derive(Debug, PartialEq, Eq)]
 pub struct Field<'a> {
     /// Tag describing the first by of the Tag-Lenght-Value sequence
@@ -59,84 +57,6 @@ impl TryFrom<&usize> for FieldType {
             0b000101 => Ok(FieldType::I32),
             invalid_type => Err(FieldTypeError::InvalidWireType(invalid_type)),
         }
-    }
-}
-
-impl<'a> fmt::Display for FieldValue<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            FieldValue::Varint(value) => write!(f, "{}", value),
-            FieldValue::I64(value) => write!(f, "{}, {}", value, i64_to_f64(*value as i64)),
-            FieldValue::LenPrimitive(bytes) => {
-                // Try to display as UTF-8 string if possible, otherwise show as hex
-                if let Ok(string) = std::str::from_utf8(bytes) {
-                    write!(f, "\"{}\"", string)
-                } else {
-                    write!(f, "{:?}", bytes)
-                }
-            }
-            FieldValue::LenSubmessage(fields) => {
-                writeln!(f, "[")?;
-                for field in fields.iter() {
-                    write!(f, "  {}", field)?;
-                }
-                write!(f, "]")
-            }
-            FieldValue::SGroup => write!(f, "SGroup"),
-            FieldValue::EGroup => write!(f, "EGroup"),
-            FieldValue::I32(value) => write!(f, "{}, {}", value, i64_to_f64(*value as i64)),
-        }
-    }
-}
-
-impl<'a> Field<'a> {
-    /// Display the field with optional indentation
-    fn display_with_indent(&self, f: &mut fmt::Formatter<'_>, indent: &str) -> fmt::Result {
-        write!(f, "{}", self.index)?;
-        match &self.value {
-            FieldValue::LenSubmessage(fields) => {
-                writeln!(f, ": SubMessage = {{")?;
-                let new_indent = format!("{}{}", indent, "    ");
-                for field in fields.iter() {
-                    write!(f, "{}    ", indent)?;
-                    field.display_with_indent(f, &new_indent)?;
-                }
-                writeln!(f, "{}}}", indent)?;
-            }
-            FieldValue::I32(value) | FieldValue::I64(value) => {
-                let new_indent = format!("{}{}", indent, "    ");
-                writeln!(
-                    f,
-                    ": {} = \n{}int   : {}\n{}float : {}",
-                    self.tag,
-                    new_indent,
-                    value,
-                    new_indent,
-                    i32_to_f32(*value as i32)
-                )?;
-            }
-            FieldValue::Varint(value) => {
-                let new_indent = format!("{}{}", indent, "    ");
-                write!(
-                    f,
-                    ": {} = \n{}signed   : {}\n{}unsigned : {}",
-                    self.tag, new_indent, value, new_indent, *value as usize
-                )?;
-                match *value {
-                    0 => writeln!(f, "\n{}bool     : false", new_indent)?,
-                    1 => writeln!(f, "\n{}bool     : true", new_indent)?,
-                    _ => writeln!(f, "")?,
-                };
-            }
-            _ => writeln!(f, ": {} = {}", self.tag, self.value)?,
-        }
-        Ok(())
-    }
-}
-
-impl<'a> fmt::Display for Field<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.display_with_indent(f, "")
     }
 }
 
@@ -239,55 +159,5 @@ mod tests {
         // Test that invalid wire types return an error even with higher bits set
         let result = FieldType::try_from(&0b10001111);
         assert!(matches!(result, Err(FieldTypeError::InvalidWireType(7))));
-    }
-
-    #[test]
-    fn test_display_implementation() {
-        // Test FieldType display
-        assert_eq!(format!("{}", FieldType::Varint), "Varint");
-        assert_eq!(format!("{}", FieldType::I64), "I64");
-        assert_eq!(format!("{}", FieldType::Len), "Len");
-        assert_eq!(format!("{}", FieldType::I32), "I32");
-
-        // Test FieldValue display
-        assert_eq!(format!("{}", FieldValue::Varint(42)), "42");
-        assert_eq!(
-            format!("{}", FieldValue::I32(123)),
-            "123, 0.00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000061"
-        );
-        assert_eq!(
-            format!("{}", FieldValue::I32(1065353216)),
-            "1065353216, 0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000005263544247"
-        );
-        assert_eq!(
-            format!("{}", FieldValue::I64(456)),
-            "456, 0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002253"
-        );
-        assert_eq!(
-            format!("{}", FieldValue::LenPrimitive(b"hello")),
-            "\"hello\""
-        );
-        assert_eq!(
-            format!("{}", FieldValue::LenPrimitive(&[0xFF, 0xFE])),
-            "[255, 254]"
-        );
-
-        // Test Field display
-        let field = Field {
-            tag: FieldType::Varint,
-            index: 1,
-            value: FieldValue::Varint(42),
-        };
-        assert_eq!(
-            format!("{}", field),
-            "1: Varint = \n    signed   : 42\n    unsigned : 42\n"
-        );
-
-        let string_field = Field {
-            tag: FieldType::Len,
-            index: 2,
-            value: FieldValue::LenPrimitive(b"test string"),
-        };
-        assert_eq!(format!("{}", string_field), "2: Len = \"test string\"\n");
     }
 }

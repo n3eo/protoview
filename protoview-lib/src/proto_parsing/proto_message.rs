@@ -1,5 +1,3 @@
-use std::fmt;
-
 use thiserror::Error;
 
 use super::{
@@ -112,18 +110,6 @@ pub fn parse_proto(data: &[u8]) -> Result<Vec<Field<'_>>, ParseProtoError> {
     }
 
     Ok(ret)
-}
-
-/// Wrapper struct for displaying a vector of fields
-pub struct FieldList<'a>(pub Vec<Field<'a>>);
-
-impl<'a> fmt::Display for FieldList<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for field in &self.0 {
-            write!(f, "{}", field)?;
-        }
-        Ok(())
-    }
 }
 
 #[cfg(test)]
