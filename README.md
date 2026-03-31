@@ -13,9 +13,9 @@ To install the cli you can run the following command: `cargo install --git https
 ## Usage
 ### CLI
 The CLI can read from STDIN by specifying "-" for the `--raw` argument or by directly passing any of the supported input types:
-`echo CgVoZWxsbxIRCgV3b3JsZBABGgYIBRICCCo= | protoview-cli --raw -`
+`echo CgVoZWxsbxIUCgV3b3JsZBABGgkIBRIFDQAAgD8= | protoview-cli --raw -`
 or
-`protoview-cli --raw CgVoZWxsbxIRCgV3b3JsZBABGgYIBRICCCo=`.
+`protoview-cli --raw CgVoZWxsbxIUCgV3b3JsZBABGgkIBRIFDQAAgD8=`.
 
 This will produce the output
 ```
@@ -23,11 +23,18 @@ Detected format base64
 1: Len = "hello"
 2: SubMessage = {
     1: Len = "world"
-    2: Varint = 1
+    2: Varint = 
+        signed   : 1
+        unsigned : 1
+        bool     : true
     3: SubMessage = {
-        1: Varint = 5
+        1: Varint = 
+            signed   : 5
+            unsigned : 5
         2: SubMessage = {
-            1: Varint = 42
+            1: I32 = 
+                int   : 1065353216
+                float : 1
         }
     }
 }
@@ -64,7 +71,7 @@ protoview-cli --path /tmp/test.proto
   - [x] stdin & file reading
   - [ ] Multi representation
     - [x] fixed
-    - [ ] varint
+    - [x] varint
 - protoview-gui
   - [ ] Implement GUI
 - TUI?
