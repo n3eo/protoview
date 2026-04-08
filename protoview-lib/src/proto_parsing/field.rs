@@ -1,4 +1,4 @@
-use std::fmt;
+use std::fmt::{self, Display};
 use thiserror::Error;
 
 #[derive(Debug, PartialEq, Eq)]
@@ -76,6 +76,32 @@ pub enum FieldValue<'a> {
     EGroup,
     /// fixed32, sfixed32, float
     I32(isize),
+}
+
+impl<'a> fmt::Display for FieldValue<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            FieldValue::Varint(value) | FieldValue::I64(value) | FieldValue::I32(value) => {
+                write!(f, "{}", value)
+            }
+            FieldValue::LenPrimitive(items) => write!(f, "{:?}", items),
+            FieldValue::LenSubmessage(fields) => {
+                writeln!(f, "[")?; // Blue for submessage start
+                for field in fields.iter() {
+                    writeln!(f, "  {}", field)?;
+                }
+                write!(f, "]")
+            }
+            FieldValue::SGroup => write!(f, "SGroup"),
+            FieldValue::EGroup => write!(f, "EGroup"),
+        }
+    }
+}
+
+impl Display for Field<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} @ {}: {}", self.tag, self.index, self.value)
+    }
 }
 
 #[cfg(test)]
