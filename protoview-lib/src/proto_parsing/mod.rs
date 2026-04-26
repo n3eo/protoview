@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 pub use field::{Field, FieldValue};
 pub use fixed::{i32_to_f32, i64_to_f64};
-pub use proto_message::{ParseProtoError, parse_proto};
+pub use proto_message::parse_proto;
 
 mod field;
 mod fixed;

@@ -1,22 +1,23 @@
-use thiserror::Error;
-
 use super::{
-    field::{Field, FieldType, FieldValue},
+    field::{Field, FieldType, FieldTypeError, FieldValue},
     fixed::{parse_fixed32, parse_fixed64},
     repeated::find_repeated_length,
     tag::{FieldDescriptor, FieldDescriptorError},
     varint::{find_varint_length, parse_varint},
 };
+use thiserror::Error;
 
 #[derive(Error, Debug, PartialEq, Eq)]
-pub enum ParseProtoError {
+pub enum ParseProtoError<'a> {
     #[error("Invalid tag length during: {0}")]
     InvalidTagLength(#[from] FieldDescriptorError),
-    #[error("Unimplemented protobuf tag")]
-    UnimplementedTag,
+    #[error("Data is considered incomplete after parsing {0:?} fields with {1} remaining bytes.")]
+    IncompleteData(Vec<Field<'a>>, usize),
+    #[error("Malformed protobuf (sub)message of {0:?}")]
+    MalformedProtobuf(Vec<u8>),
 }
 
-pub fn parse_proto(data: &[u8]) -> Result<Vec<Field<'_>>, ParseProtoError> {
+pub fn parse_proto(data: &'_ [u8]) -> Result<Vec<Field<'_>>, ParseProtoError<'_>> {
     let mut skip_until: usize = 0;
     let mut ret = vec![];
 
@@ -26,16 +27,39 @@ pub fn parse_proto(data: &[u8]) -> Result<Vec<Field<'_>>, ParseProtoError> {
             continue;
         }
 
-        // PANIC: for loop guarantees index exists when used without modification
+        // Check if we have enough data for tag varint
         let tag_varint_len = find_varint_length(&data[idx..]);
-        // Protobuf tag field can't be a signed interger
+        if idx + tag_varint_len > data.len() {
+            return Err(ParseProtoError::IncompleteData(ret, data[idx..].len()));
+        }
+
+        // Protobuf tag field can't be a signed integer
         let tag_bytes = parse_varint(&data[idx..idx + tag_varint_len]) as usize;
 
-        let FieldDescriptor { field_type, index } = FieldDescriptor::try_from(&tag_bytes)?;
+        let field_descriptor_result = FieldDescriptor::try_from(&tag_bytes);
+
+        let (field_type, index) = match field_descriptor_result {
+            Ok(descriptor) => (descriptor.field_type, descriptor.index),
+            Err(FieldDescriptorError::InvalidFieldDescriptor(
+                FieldTypeError::InvalidWireType(_) | FieldTypeError::UnsupportedGroupType(_),
+            )) => {
+                // Handle invalid wire type by treating it as unparsed data
+                return Err(ParseProtoError::MalformedProtobuf(data[idx..].to_vec()));
+            }
+        };
 
         let tag = match field_type {
             FieldType::Varint => {
+                // Check if we have enough data for varint value
+                if idx + tag_varint_len > data.len() {
+                    return Err(ParseProtoError::IncompleteData(ret, data[idx..].len()));
+                }
+
                 let var_int_len = find_varint_length(&data[idx + tag_varint_len..]);
+                if idx + tag_varint_len + var_int_len > data.len() {
+                    return Err(ParseProtoError::IncompleteData(ret, data[idx..].len()));
+                }
+
                 skip_until = idx + tag_varint_len + var_int_len;
                 Field {
                     tag: FieldType::Varint,
@@ -46,6 +70,9 @@ pub fn parse_proto(data: &[u8]) -> Result<Vec<Field<'_>>, ParseProtoError> {
                 }
             }
             FieldType::I64 => {
+                if idx + tag_varint_len + 8 > data.len() {
+                    return Err(ParseProtoError::IncompleteData(ret, data[idx..].len()));
+                }
                 // Convert slice to array and parse as fixed32, then convert to isize
                 let bytes: [u8; 8] = data[idx + tag_varint_len..idx + tag_varint_len + 8]
                     .try_into()
@@ -58,11 +85,15 @@ pub fn parse_proto(data: &[u8]) -> Result<Vec<Field<'_>>, ParseProtoError> {
                 }
             }
             FieldType::Len => {
-                let repeated_length = find_repeated_length(&data[idx + 1..]);
+                let repeated_length = find_repeated_length(&data[idx + tag_varint_len..]);
                 skip_until =
                     idx + tag_varint_len + repeated_length.skip_bytes + repeated_length.length;
 
-                let len_data = &data[idx + 1 + repeated_length.skip_bytes
+                if skip_until > data.len() {
+                    return Err(ParseProtoError::IncompleteData(ret, data[idx..].len()));
+                }
+
+                let len_data = &data[idx + tag_varint_len + repeated_length.skip_bytes
                     ..idx + tag_varint_len + repeated_length.skip_bytes + repeated_length.length];
 
                 // PANIC: for loop guarantees index exists when used without modification
@@ -92,8 +123,12 @@ pub fn parse_proto(data: &[u8]) -> Result<Vec<Field<'_>>, ParseProtoError> {
                     value: field_value,
                 }
             }
-            FieldType::SGroup | FieldType::EGroup => return Err(ParseProtoError::UnimplementedTag),
             FieldType::I32 => {
+                // Check if we have enough data for 4-byte fixed32
+                if idx + tag_varint_len + 4 > data.len() {
+                    return Err(ParseProtoError::IncompleteData(ret, data[idx..].len()));
+                }
+
                 // Convert slice to array and parse as fixed32, then convert to isize
                 let bytes: [u8; 4] = data[idx + tag_varint_len..idx + tag_varint_len + 4]
                     .try_into()
@@ -221,5 +256,49 @@ mod tests {
             value: FieldValue::Varint(1),
         }];
         assert_eq!(parsed, expected);
+    }
+
+    #[test]
+    fn test_incomplete_data_error() {
+        // Test incomplete data at end of buffer
+        let result = parse_proto(&[0x0d, 0x01, 0x00, 0x00]); // Incomplete I32 (needs 5 bytes, only 4 provided)
+        match result {
+            Err(ParseProtoError::IncompleteData(fields, remaining)) => {
+                assert_eq!(fields.len(), 0);
+                assert_eq!(remaining, 4); // 4 bytes remaining
+            }
+            _ => panic!("Expected IncompleteData error"),
+        }
+
+        // Test partial success with incomplete data
+        let result = parse_proto(&[0x08, 0x01, 0x0d, 0x01, 0x00, 0x00]); // Complete varint, incomplete I32
+        match result {
+            Err(ParseProtoError::IncompleteData(fields, remaining)) => {
+                assert_eq!(fields.len(), 1); // One field parsed successfully
+                assert_eq!(remaining, 4); // 4 bytes remaining (incomplete I32)
+            }
+            _ => panic!("Expected IncompleteData error with partial success"),
+        }
+    }
+
+    #[test]
+    fn test_malformed_protobuf_error() {
+        // Test invalid wire type 6
+        let result = parse_proto(&[0x0F, 0x01]); // wire type 6, field 1
+        match result {
+            Err(ParseProtoError::MalformedProtobuf(bytes)) => {
+                assert_eq!(bytes, vec![0x0F, 0x01]);
+            }
+            _ => panic!("Expected MalformedProtobuf error for wire type 6"),
+        }
+
+        // Test partial success with malformed data
+        let result = parse_proto(&[0x08, 0x01, 0x0F, 0x02]); // Valid varint, then invalid wire type
+        match result {
+            Err(ParseProtoError::MalformedProtobuf(bytes)) => {
+                assert_eq!(bytes, vec![0x0F, 0x02]);
+            }
+            _ => panic!("Expected MalformedProtobuf error with partial success"),
+        }
     }
 }

@@ -17,10 +17,6 @@ pub enum FieldType {
     I64,
     /// string, bytes, embedded messages, packed repeated fields
     Len,
-    /// group start (deprecated)
-    SGroup,
-    /// group end (deprecated)
-    EGroup,
     /// fixed32, sfixed32, float
     I32,
 }
@@ -29,6 +25,8 @@ pub enum FieldType {
 pub enum FieldTypeError {
     #[error("Invalid wire type: {0}")]
     InvalidWireType(usize),
+    #[error("Unsupported group wire type: {0}")]
+    UnsupportedGroupType(usize),
 }
 
 impl fmt::Display for FieldType {
@@ -37,8 +35,6 @@ impl fmt::Display for FieldType {
             FieldType::Varint => write!(f, "Varint"),
             FieldType::I64 => write!(f, "I64"),
             FieldType::Len => write!(f, "Len"),
-            FieldType::SGroup => write!(f, "SGroup"),
-            FieldType::EGroup => write!(f, "EGroup"),
             FieldType::I32 => write!(f, "I32"),
         }
     }
@@ -52,8 +48,8 @@ impl TryFrom<&usize> for FieldType {
             0b000000 => Ok(FieldType::Varint),
             0b000001 => Ok(FieldType::I64),
             0b000010 => Ok(FieldType::Len),
-            0b000011 => Ok(FieldType::SGroup),
-            0b000100 => Ok(FieldType::EGroup),
+            0b000011 => Err(FieldTypeError::UnsupportedGroupType(0b000011)),
+            0b000100 => Err(FieldTypeError::UnsupportedGroupType(0b000100)),
             0b000101 => Ok(FieldType::I32),
             invalid_type => Err(FieldTypeError::InvalidWireType(invalid_type)),
         }
@@ -70,10 +66,8 @@ pub enum FieldValue<'a> {
     LenPrimitive(&'a [u8]),
     /// string, bytes, embedded messages, packed repeated fields
     LenSubmessage(Vec<Field<'a>>),
-    /// group start (deprecated)
-    SGroup,
-    /// group end (deprecated)
-    EGroup,
+    /// group start/end (deprecated)
+    SEGroup(&'a [u8]),
     /// fixed32, sfixed32, float
     I32(isize),
 }
@@ -92,8 +86,7 @@ impl<'a> fmt::Display for FieldValue<'a> {
                 }
                 write!(f, "]")
             }
-            FieldValue::SGroup => write!(f, "SGroup"),
-            FieldValue::EGroup => write!(f, "EGroup"),
+            FieldValue::SEGroup(items) => write!(f, "SEGroup({:?})", items),
         }
     }
 }
@@ -114,8 +107,6 @@ mod tests {
         assert_eq!(FieldType::try_from(&0b000000).unwrap(), FieldType::Varint);
         assert_eq!(FieldType::try_from(&0b000001).unwrap(), FieldType::I64);
         assert_eq!(FieldType::try_from(&0b000010).unwrap(), FieldType::Len);
-        assert_eq!(FieldType::try_from(&0b000011).unwrap(), FieldType::SGroup);
-        assert_eq!(FieldType::try_from(&0b000100).unwrap(), FieldType::EGroup);
         assert_eq!(FieldType::try_from(&0b000101).unwrap(), FieldType::I32);
     }
 
@@ -142,21 +133,17 @@ mod tests {
     }
 
     #[test]
-    fn test_enum_equality() {
-        // Test that FieldType variants can be compared for equality
-        assert_eq!(FieldType::Varint, FieldType::Varint);
-        assert_eq!(FieldType::I64, FieldType::I64);
-        assert_eq!(FieldType::Len, FieldType::Len);
-        assert_eq!(FieldType::SGroup, FieldType::SGroup);
-        assert_eq!(FieldType::EGroup, FieldType::EGroup);
-        assert_eq!(FieldType::I32, FieldType::I32);
-
-        // Test inequality
-        assert_ne!(FieldType::Varint, FieldType::I64);
-        assert_ne!(FieldType::Varint, FieldType::Len);
-        assert_ne!(FieldType::Varint, FieldType::SGroup);
-        assert_ne!(FieldType::Varint, FieldType::EGroup);
-        assert_ne!(FieldType::Varint, FieldType::I32);
+    fn test_invalid_group_wire_types() {
+        let result = FieldType::try_from(&0b0000011);
+        assert!(matches!(
+            result,
+            Err(FieldTypeError::UnsupportedGroupType(3))
+        ));
+        let result = FieldType::try_from(&0b0000100);
+        assert!(matches!(
+            result,
+            Err(FieldTypeError::UnsupportedGroupType(4))
+        ));
     }
 
     #[test]

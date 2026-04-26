@@ -61,6 +61,7 @@ protoview-cli --path /tmp/test.proto
   - [ ] Debug mode with duplicate fields for index?
     - [ ] Store parsed data in a tree structure
   - [ ] Schema parsing
+  - [ ] Improve array slice out of bounds handling (.get)
 - protoview-cli
   - [x] implement cli
   - [x] pretty print

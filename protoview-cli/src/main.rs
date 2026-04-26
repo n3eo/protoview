@@ -7,7 +7,7 @@ use crate::{
     args::Args,
     harmonize_input::{Convert2U8Error, harmonize_input_to_u8},
 };
-use protoview_lib::{FieldList, ParseProtoError, parse_proto};
+use protoview_lib::{FieldList, parse_proto};
 
 mod args;
 mod harmonize_input;
@@ -18,8 +18,6 @@ pub enum Error {
     Harmonize(#[from] Convert2U8Error),
     #[error("Could not read the provided path: {0}")]
     ReadFile(#[from] io::Error),
-    #[error("Protobuf parsing error: {0}")]
-    ParseProto(#[from] ParseProtoError),
 }
 
 fn main() -> Result<(), Error> {
@@ -35,10 +33,15 @@ fn main() -> Result<(), Error> {
 
     let parsed = parse_proto(&input);
 
-    if args.debug {
-        println!("{:#?}", parsed?);
-    } else {
-        println!("{}", FieldList(parsed?));
+    match parsed {
+        Err(e) => eprintln!("{e:?}"),
+        Ok(val) => {
+            if args.debug {
+                println!("{:#?}", val);
+            } else {
+                println!("{}", FieldList(val));
+            }
+        }
     }
     Ok(())
 }
