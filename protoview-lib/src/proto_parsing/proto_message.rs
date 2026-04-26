@@ -1,3 +1,5 @@
+use crate::FieldList;
+
 use super::{
     field::{Field, FieldType, FieldTypeError, FieldValue},
     fixed::{parse_fixed32, parse_fixed64},
@@ -121,7 +123,7 @@ pub fn parse_proto(data: &'_ [u8]) -> Result<Vec<Field<'_>>, ParseProtoError> {
                 let field_value = if test_is_sub_message.is_ok() {
                     // If the submessage parsing fails it is a primitiv.
                     if let Ok(sub_message) = parse_proto(len_data) {
-                        FieldValue::LenSubmessage(sub_message)
+                        FieldValue::LenSubmessage(FieldList(sub_message))
                     } else {
                         FieldValue::LenPrimitive(len_data)
                     }
@@ -159,6 +161,8 @@ pub fn parse_proto(data: &'_ [u8]) -> Result<Vec<Field<'_>>, ParseProtoError> {
 
 #[cfg(test)]
 mod tests {
+    use crate::FieldList;
+
     use super::*;
 
     #[test]
@@ -248,11 +252,11 @@ mod tests {
         let expected = vec![Field {
             tag: FieldType::Len,
             index: 3,
-            value: FieldValue::LenSubmessage(vec![Field {
+            value: FieldValue::LenSubmessage(FieldList(vec![Field {
                 tag: FieldType::Varint,
                 index: 1,
                 value: FieldValue::Varint(150),
-            }]),
+            }])),
         }];
         assert_eq!(parsed, expected);
     }

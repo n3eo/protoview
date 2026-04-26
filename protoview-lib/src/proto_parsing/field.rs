@@ -1,6 +1,8 @@
 use std::fmt::{self, Display};
 use thiserror::Error;
 
+use crate::FieldList;
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct Field<'a> {
     /// Tag describing the first by of the Tag-Lenght-Value sequence
@@ -65,7 +67,7 @@ pub enum FieldValue<'a> {
     /// string, bytes, embedded messages, packed repeated fields
     LenPrimitive(&'a [u8]),
     /// string, bytes, embedded messages, packed repeated fields
-    LenSubmessage(Vec<Field<'a>>),
+    LenSubmessage(FieldList<'a>),
     /// group start/end (deprecated)
     SEGroup(&'a [u8]),
     /// fixed32, sfixed32, float
@@ -81,7 +83,7 @@ impl<'a> fmt::Display for FieldValue<'a> {
             FieldValue::LenPrimitive(items) => write!(f, "{:?}", items),
             FieldValue::LenSubmessage(fields) => {
                 writeln!(f, "[")?; // Blue for submessage start
-                for field in fields.iter() {
+                for field in fields.0.iter() {
                     writeln!(f, "  {}", field)?;
                 }
                 write!(f, "]")
