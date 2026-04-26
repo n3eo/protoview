@@ -1,7 +1,7 @@
 use std::fmt::{self, Display};
 use thiserror::Error;
 
-use crate::FieldList;
+use crate::{FieldList, i32_to_f32, i64_to_f64};
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Field<'a> {
@@ -77,10 +77,16 @@ pub enum FieldValue<'a> {
 impl<'a> fmt::Display for FieldValue<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            FieldValue::Varint(value) | FieldValue::I64(value) | FieldValue::I32(value) => {
+            FieldValue::I64(value) => {
+                write!(f, "{} | {} | {:e}", value, *value as usize, i64_to_f64(*value as i64))
+            }
+            FieldValue::I32(value) => {
+                write!(f, "{} | {} | {:e}", value, *value as usize, i32_to_f32(*value as i32))
+            }
+            FieldValue::Varint(value) => {
                 write!(f, "{}", value)
             }
-            FieldValue::LenPrimitive(items) => write!(f, "{:?}", items),
+            FieldValue::LenPrimitive(items) => write!(f, "{:?}", String::from_utf8(items.to_vec()).unwrap_or_else(|_| format!("{:?}", items))),
             FieldValue::LenSubmessage(fields) => {
                 writeln!(f, "[")?; // Blue for submessage start
                 for field in fields.0.iter() {
