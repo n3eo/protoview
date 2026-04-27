@@ -3,9 +3,9 @@ use std::{
     rc::Rc,
 };
 
-use protoview_lib::{Field, FieldList, FieldValue, i32_to_f32};
+use protoview_lib::{Field, FieldList, FieldValue};
 
-use crate::colored_display::{Colorer, NoColor};
+use crate::colored_display::Colorer;
 
 pub trait Indent {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result;

@@ -9,9 +9,11 @@ use crate::{
 };
 use protoview_lib::{Field, FieldList, ParseProtoError, parse_proto};
 
+use crate::colored_display::NoColor;
 use indented_display::{IndentedDisplay, Indenter, Indent};
 
 mod args;
+mod colored_display;
 mod harmonize_input;
 mod indented_display;
 
