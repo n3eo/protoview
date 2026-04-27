@@ -20,24 +20,17 @@ or
 This will produce the output
 ```
 Detected format base64
-1: Len = "hello"
-2: SubMessage = {
-    1: Len = "world"
-    2: Varint = 
-        signed   : 1
-        unsigned : 1
-        bool     : true
-    3: SubMessage = {
-        1: Varint = 
-            signed   : 5
-            unsigned : 5
-        2: SubMessage = {
-            1: I32 = 
-                int   : 1065353216
-                float : 1
-        }
-    }
-}
+Len @ 1: "hello"
+SubMessage @ 2: [
+  Len @ 1: "world"
+  Varint @ 2: 1
+  SubMessage @ 3: [
+    Varint @ 1: 5
+    SubMessage @ 2: [
+      I32 @ 1: 1065353216 | 1065353216 | 1e0
+    ]
+  ]
+]
 ```
 
 It is also possible to directly read from a file which currently only support reading proto binary files:
@@ -72,7 +65,7 @@ protoview-cli --path /tmp/test.proto
   - [x] stdin & file reading
   - [ ] Multi representation
     - [x] fixed
-    - [x] varint
+    - [ ] varint
 - protoview-gui
   - [ ] Implement GUI
 - TUI?
