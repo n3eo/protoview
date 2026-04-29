@@ -183,6 +183,7 @@ name = "protoview-lib"
 version = "0.1.0"
 dependencies = [
  "thiserror",
+ "zigzag-rs",
 ]
 
 [[package]]
@@ -286,3 +287,9 @@ checksum = "ae137229bcbd6cdf0f7b80a31df61766145077ddf49416a728b02cb3921ff3fc"
 dependencies = [
  "windows-link",
 ]
+
+[[package]]
+name = "zigzag-rs"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4be13092fdf7a0e970ca30ab3dd64d35e0f78bfd5b47c922648bd8945d6f43bb"
