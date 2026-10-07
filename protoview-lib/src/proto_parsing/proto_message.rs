@@ -84,7 +84,7 @@ pub fn parse_proto(data: &'_ [u8]) -> Result<Vec<Field<'_>>, ParseProtoError> {
                 Field {
                     tag: FieldType::I64,
                     index,
-                    value: FieldValue::I64(parse_fixed64(&bytes) as isize),
+                    value: FieldValue::I64(parse_fixed64(&bytes)),
                 }
             }
             FieldType::Len => {
@@ -149,7 +149,7 @@ pub fn parse_proto(data: &'_ [u8]) -> Result<Vec<Field<'_>>, ParseProtoError> {
                 Field {
                     tag: FieldType::I32,
                     index,
-                    value: FieldValue::I32(parse_fixed32(&bytes) as isize),
+                    value: FieldValue::I32(parse_fixed32(&bytes)),
                 }
             }
         };

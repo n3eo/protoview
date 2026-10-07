@@ -27,7 +27,7 @@ SubMessage @ 2: [
   SubMessage @ 3: [
     Varint @ 1: int 5 | uint 5 | sint -3
     SubMessage @ 2: [
-      I32 @ 1: sint 1065353216 | uint 1065353216 | float  1e0
+      I32 @ 1: sfixed 1065353216 | fixed 1065353216 | float 1e0
     ]
   ]
 ]
@@ -46,7 +46,8 @@ protoview-cli --path /tmp/test.proto
     - [x] Primitives 
     - [x] Sub messages
   - [x] Float and double decoding in I32 & I64
-  - [ ] Test bool and enum in Varint
+  - [x] Test bool in Varint
+  - [ ] Test enum in Varint
   - [ ] Implement Mapping to schema
   - [ ] Extend test cases
   - [ ] Negative numbers (ZigZag)

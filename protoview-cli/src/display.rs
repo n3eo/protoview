@@ -231,13 +231,13 @@ impl Display for ValueText<'_, '_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.0 {
             FieldValue::I64(value) => {
-                write!(f, "sint {} | uint {} | double {:e}", value, *value as usize, i64_to_f64(*value as i64))
+                write!(f, "sfixed {} | fixed {} | double {:e}", value, *value as u64, i64_to_f64(*value as i64))
             }
             FieldValue::I32(value) => {
-                write!(f, "sint {} | uint {} | float  {:e}", value, *value as u32, i32_to_f32(*value as i32))
+                write!(f, "sfixed {} | fixed {} | float {:e}", value, *value as u32, i32_to_f32(*value as i32))
             }
             FieldValue::Varint(value) => {
-                write!(f, "int {} | uint {} | sint {}", value, *value as usize, i64::zigzag_decode(*value as u64))?;
+                write!(f, "int {} | uint {} | sint {}", *value as i64, value, i64::zigzag_decode(*value))?;
                 if let Some(b) = convert_to_if_bool(*value) {
                     write!(f, " | bool {}", b)?;
                 }
@@ -252,7 +252,7 @@ impl Display for ValueText<'_, '_> {
 }
 
 /// Interprets a varint as a bool when it is exactly `0` or `1`.
-fn convert_to_if_bool(inp: isize) -> Option<bool> {
+fn convert_to_if_bool(inp: u64) -> Option<bool> {
     match inp {
         0 => Some(false),
         1 => Some(true),

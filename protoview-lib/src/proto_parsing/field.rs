@@ -49,9 +49,9 @@ impl TryFrom<&usize> for FieldType {
 #[derive(Debug, PartialEq, Eq)]
 pub enum FieldValue<'a> {
     /// int32, int64, uint32, uint64, sint32, sint64, bool, enum
-    Varint(isize),
+    Varint(u64),
     /// fixed64, sfixed64, double
-    I64(isize),
+    I64(i64),
     /// string, bytes, embedded messages, packed repeated fields
     LenPrimitive(&'a [u8]),
     /// string, bytes, embedded messages, packed repeated fields
@@ -59,7 +59,7 @@ pub enum FieldValue<'a> {
     /// group start/end (deprecated)
     SEGroup(&'a [u8]),
     /// fixed32, sfixed32, float
-    I32(isize),
+    I32(i32),
 }
 
 #[cfg(test)]

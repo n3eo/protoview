@@ -1,28 +1,34 @@
-pub fn parse_varint(data: &[u8]) -> isize {
-    let mut ret: isize = 0;
+pub fn parse_varint(data: &[u8]) -> u64 {
+    let mut ret: u64 = 0;
     for d in data.iter().rev() {
         // Unset the 8th bit which only indicates if more bytes follow
-        ret = (ret << 7) | ((*d & 0b01111111) as isize);
+        ret = (ret << 7) | ((*d & 0b01111111) as u64);
     }
     ret
 }
 
 pub fn find_varint_length(data: &[u8]) -> usize {
-    // TOOD: Idea could be omptimized with SIMD
+    // TOOD: Idea could be optimized with SIMD
     if data.is_empty() {
         panic!("Cannot find varint length in empty slice");
     }
 
-    for (i, d) in data.iter().enumerate() {
+    // We start with a count of 1 because every properly formed varint
+    // hat atleast one byte.
+    let mut count = 1;
+    for d in data.iter() {
+        // Check if the continuation bit is unset and break loop
         if d & 0b10000000 == 0b00000000 {
-            return i + 1;
+            return count;
         }
+        // Prevent infinite loops and invalid varints that are too long.
+        // A varint is at most 10 bytes, so needing an 11th is invalid.
+        if count >= 10 {
+            panic!("Invalid varint: too many bytes");
+        }
+        
+        count += 1;
 
-        // Prevent infinite loops and invalid varints that are too long
-        if i >= 10 {
-            // Maximum varint length in protobuf is 10 bytes
-            panic!("Invalid varint: no terminating byte found within maximum length");
-        }
     }
 
     // If we reach here, the varint is invalid (no terminating byte)
@@ -133,7 +139,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "Invalid varint: no terminating byte found within maximum length")]
+    #[should_panic(expected = "Invalid varint: too many bytes")]
     fn test_find_varint_length_panics_on_too_long() {
         find_varint_length(&[
             0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80,
