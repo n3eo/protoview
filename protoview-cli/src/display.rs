@@ -234,7 +234,7 @@ impl Display for ValueText<'_, '_> {
                 write!(f, "sint {} | uint {} | double {:e}", value, *value as usize, i64_to_f64(*value as i64))
             }
             FieldValue::I32(value) => {
-                write!(f, "sint {} | uint {} | float  {:e}", value, *value as usize, i32_to_f32(*value as i32))
+                write!(f, "sint {} | uint {} | float  {:e}", value, *value as u32, i32_to_f32(*value as i32))
             }
             FieldValue::Varint(value) => {
                 write!(f, "int {} | uint {} | sint {}", value, *value as usize, i64::zigzag_decode(*value as u64))?;
