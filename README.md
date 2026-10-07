@@ -2,8 +2,8 @@
 Protoview is a util for exploring protobuf encoded bytes with and without a schema.
 
 The project is structured into three workspace members:
-- `protoview-lib`: Contains the decoding logic and pretty printing
-- `protoview-cli`: Wraps the lib to be used in the terminal
+- `protoview-lib`: Contains the decoding logic
+- `protoview-cli`: Wraps the lib to be used in the terminal, including pretty printing
 - `protoview-gui`: Warps the lib in an easy to use GUI
 
 ## Installation
@@ -23,11 +23,11 @@ Detected format base64
 Len @ 1: "hello"
 SubMessage @ 2: [
   Len @ 1: "world"
-  Varint @ 2: 1
+  Varint @ 2: int 1 | uint 1 | sint -1 | bool true
   SubMessage @ 3: [
-    Varint @ 1: 5
+    Varint @ 1: int 5 | uint 5 | sint -3
     SubMessage @ 2: [
-      I32 @ 1: 1065353216 | 1065353216 | 1e0
+      I32 @ 1: sint 1065353216 | uint 1065353216 | float  1e0
     ]
   ]
 ]
@@ -59,13 +59,13 @@ protoview-cli --path /tmp/test.proto
   - [x] implement cli
   - [x] pretty print
     - [x] Fix recursive indentation
-  - [ ] Add colors to output
+  - [x] Add colors to output
   - [x] support bytes, hex
     - [x] auto mode
   - [x] stdin & file reading
-  - [ ] Multi representation
+  - [x] Multi representation
     - [x] fixed
-    - [ ] varint
+    - [x] varint
 - protoview-gui
   - [ ] Implement GUI
 - TUI?

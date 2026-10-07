@@ -19,10 +19,7 @@ pub enum Convert2U8Error {
     DetectFrom(#[from] DetectFormatError),
 }
 
-pub(crate) fn harmonize_input_to_u8(
-    data: &String,
-    format: &Format,
-) -> Result<Vec<u8>, Convert2U8Error> {
+pub fn harmonize_input_to_u8(data: &String, format: &Format) -> Result<Vec<u8>, Convert2U8Error> {
     match format {
         Format::Hex => Ok(hex::decode(data)?),
         Format::BinaryString => {

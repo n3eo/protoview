@@ -1,8 +1,6 @@
-use std::fmt::{self, Display};
 use thiserror::Error;
-use zigzag_rs::ZigZag;
 
-use crate::{FieldList, i32_to_f32, i64_to_f64};
+use crate::FieldList;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Field<'a> {
@@ -30,17 +28,6 @@ pub enum FieldTypeError {
     InvalidWireType(usize),
     #[error("Unsupported group wire type: {0}")]
     UnsupportedGroupType(usize),
-}
-
-impl fmt::Display for FieldType {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            FieldType::Varint => write!(f, "Varint"),
-            FieldType::I64 => write!(f, "I64"),
-            FieldType::Len => write!(f, "Len"),
-            FieldType::I32 => write!(f, "I32"),
-        }
-    }
 }
 
 impl TryFrom<&usize> for FieldType {
@@ -73,49 +60,6 @@ pub enum FieldValue<'a> {
     SEGroup(&'a [u8]),
     /// fixed32, sfixed32, float
     I32(isize),
-}
-
-impl<'a> fmt::Display for FieldValue<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            FieldValue::I64(value) => {
-                write!(f, "sint {} | uint {} | double {:e}", value, *value as usize, i64_to_f64(*value as i64))
-            }
-            FieldValue::I32(value) => {
-                write!(f, "sint {} | uint {} | float  {:e}", value, *value as usize, i32_to_f32(*value as i32))
-            }
-            FieldValue::Varint(value) => {
-                write!(f, "int {} | uint {} | sint {}", value, *value as usize, i64::zigzag_decode(*value as u64))?;
-                if let Some(b) = convert_to_if_bool(*value) {
-                    write!(f, " | bool {}", b)?;
-                }
-                Ok(())
-            }
-            FieldValue::LenPrimitive(items) => write!(f, "{:?}", String::from_utf8(items.to_vec()).unwrap_or_else(|_| format!("{:?}", items))),
-            FieldValue::LenSubmessage(fields) => {
-                writeln!(f, "[")?; // Blue for submessage start
-                for field in fields.0.iter() {
-                    writeln!(f, "  {}", field)?;
-                }
-                write!(f, "]")
-            }
-            FieldValue::SEGroup(items) => write!(f, "SEGroup({:?})", items),
-        }
-    }
-}
-
-impl Display for Field<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} @ {}: {}", self.tag, self.index, self.value)
-    }
-}
-
-fn convert_to_if_bool(inp: isize) -> Option<bool> {
-    match inp {
-        0 => Some(false),
-        1 => Some(true),
-        _ => None
-    }
 }
 
 #[cfg(test)]

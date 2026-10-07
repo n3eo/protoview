@@ -1,21 +1,14 @@
-use std::{fs, io};
-
 use clap::Parser;
+use protoview_lib::{FieldList, ParseProtoError, parse_proto};
+use std::{fs, io, time::Instant};
 use thiserror::Error;
 
-use crate::{
-    args::Args,
-    harmonize_input::{Convert2U8Error, harmonize_input_to_u8},
-};
-use protoview_lib::{Field, FieldList, ParseProtoError, parse_proto};
-
-use crate::colored_display::NoColor;
-use indented_display::{IndentedDisplay, Indenter, Indent};
+use crate::{args::Args, display::Styled, harmonize_input::{Convert2U8Error, harmonize_input_to_u8}};
 
 mod args;
-mod colored_display;
+mod display;
 mod harmonize_input;
-mod indented_display;
+
 
 #[derive(Error, Debug)]
 pub enum Error {
@@ -38,29 +31,24 @@ fn main() -> Result<(), Error> {
             .expect("Neither a file or a raw input is defined")?,
     };
 
+    let start = Instant::now();
     let parsed = parse_proto(&input);
+    let duration = start.elapsed();
 
-    match parsed {
-        Err(e) => eprintln!("{e:?}"),
-        Ok(val) => {
-            let fields = FieldList(val);
-                let indenter = Indenter::new("  ", NoColor {});
-
-                // Create a struct that implements Display using IndentedDisplay
-                struct IndentedFieldList<'a> {
-                    fields: FieldList<'a>,
-                    indenter: Indenter<'a, FieldList<'a>>,
-                }
-
-                impl<'a> std::fmt::Display for IndentedFieldList<'a> {
-                    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                        IndentedDisplay::fmt(&self.fields, f, &self.indenter)
-                    }
-                }
-
-                let indented_fields = IndentedFieldList { fields, indenter };
-                println!("{}", indented_fields);
+    if args.debug {
+        println!("{:#?}", parsed?);
+    } else {
+        // Colors and indentation are independent settings of the same
+        // printing routine: `--color` toggles the scheme, indentation is
+        // the padding passed to `indented`.
+        let fields = FieldList(parsed?);
+        let styled = Styled::plain(&fields).indented("  ");
+        if args.color {
+            println!("{}", styled.colored());
+        } else {
+            println!("{}", styled);
         }
     }
+    println!("Parsing took: {:?}", duration);
     Ok(())
 }

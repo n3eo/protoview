@@ -172,6 +172,7 @@ dependencies = [
  "protoview-lib",
  "regex",
  "thiserror",
+ "zigzag-rs",
 ]
 
 [[package]]
@@ -183,7 +184,6 @@ name = "protoview-lib"
 version = "0.1.0"
 dependencies = [
  "thiserror",
- "zigzag-rs",
 ]
 
 [[package]]

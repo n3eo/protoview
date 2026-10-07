@@ -18,3 +18,4 @@ hex = { version = "0.4.3" }
 protoview-lib = { path = "../protoview-lib" }
 regex = "1.12.3"
 thiserror.workspace = true
+zigzag-rs = "0.2.1"

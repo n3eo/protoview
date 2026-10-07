@@ -17,6 +17,8 @@ pub struct Args {
     pub format: Format,
     #[arg(long, default_value = "false")]
     pub debug: bool,
+    #[arg(long, default_value = "false")]
+    pub color: bool,
 }
 
 #[derive(Debug, Clone, ValueEnum)]
